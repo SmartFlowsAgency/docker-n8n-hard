@@ -1,0 +1,183 @@
+certbot:
+  LETSENCRYPT_DOMAIN:
+    required: true
+    default: $BASE_URL
+    alias: BASE_URL
+    generate: false
+  LETSENCRYPT_EMAIL:
+    required: true
+    generate: false
+  CERTBOT_STAGING:
+    required: false
+    default: false
+    generate: false
+  CERTBOT_DRY_RUN:
+    required: false
+    default: false
+    generate: false
+
+n8n:
+  N8N_HOST:
+    required: true
+    default: 127.0.0.1
+    generate: false
+  N8N_PORT:
+    required: true
+    default: 5678
+    generate: false
+  N8N_EDITOR_BASE_URL:
+    required: true
+    default: $BASE_URL
+    alias: BASE_URL
+    generate: false
+  N8N_WEBHOOK_TUNNEL_URL:
+    required: false
+    generate: false
+  N8N_USER_HOME_DIR:
+    required: true
+    default: n8n_data
+    generate: false
+  N8N_FILES_DIR:
+    required: true
+    default: n8n_files
+    generate: false
+  N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:
+    required: true
+    default: true
+    generate: false
+  N8N_SECURE_COOKIE:
+    required: true
+    default: true
+    generate: false
+  N8N_PROTOCOL:
+    required: true
+    default: http
+    generate: false
+  N8N_PAYLOAD_SIZE_MAX:
+    required: true
+    default: 16777216
+    generate: false
+  N8N_ADDITIONAL_ALLOWED_ORIGINS:
+    required: true
+    default: https://api.n8n.io
+    generate: false
+  DB_TYPE:
+    required: true
+    default: postgresdb
+    generate: false
+  DB_POSTGRESDB_HOST:
+    required: true
+    default: n8n-postgres
+    generate: false
+  DB_POSTGRESDB_PORT:
+    required: true
+    default: 5432
+    generate: false
+  DB_POSTGRESDB_DATABASE:
+    required: true
+    default: n8n_hard_postgres_db
+    generate: false
+  DB_POSTGRESDB_USER:
+    required: true
+    default: n8n_hard_postgres_user
+    generate: false
+  DB_POSTGRESDB_PASSWORD:
+    required: true
+    default: $PG_DB_PASSWORD
+    alias: PG_DB_PASSWORD
+    generate: false
+  N8N_BASIC_AUTH_ACTIVE:
+    required: true
+    default: true
+    generate: false
+  N8N_BASIC_AUTH_USER:
+    required: true
+    generate: false
+  N8N_BASIC_AUTH_PASSWORD:
+    required: true
+    generate: true
+    type: random_base64_24
+  N8N_USER_MANAGEMENT_DISABLED:
+    required: false
+    default: true
+    generate: false
+  N8N_ENCRYPTION_KEY:
+    required: true
+    generate: true
+    type: random_base64_32
+  N8N_RUNNERS_ENABLED:
+    required: true
+    default: true
+    generate: false
+  N8N_DISABLE_PRODUCTION_MAIN_PROCESS:
+    required: true
+    default: false
+    generate: false
+  NODE_FUNCTION_ALLOW_BUILTIN:
+    required: false
+    generate: false
+  NODE_FUNCTION_ALLOW_EXTERNAL:
+    required: false
+    generate: false
+  N8N_LOG_LEVEL:
+    required: true
+    default: info
+    generate: false
+  N8N_LOG_OUTPUT:
+    required: true
+    default: console
+    generate: false
+  N8N_METRICS:
+    required: true
+    default: false
+    generate: false
+  N8N_DIAGNOSTICS_ENABLED:
+    required: true
+    default: false
+    generate: false
+  N8N_VERSION_NOTIFICATIONS_ENABLED:
+    required: true
+    default: false
+    generate: false
+
+overlay:
+  BASE_URL:
+    required: true
+    generate: false
+  N8N_BASIC_AUTH_USER:
+    required: true
+    generate: false
+  N8N_BASIC_AUTH_PASSWORD:
+    required: true
+    generate: true
+    type: random_base64_24
+  LETSENCRYPT_EMAIL:
+    required: true
+    generate: false
+  PG_DB_NAME:
+    required: true
+    generate: false
+  PG_DB_PASSWORD:
+    required: true
+    generate: true
+    type: openssl_32
+
+postgres:
+  POSTGRES_DB:
+    required: true
+    default: n8n_hard_postgres_db
+    generate: false
+  POSTGRES_USER:
+    required: true
+    default: n8n_hard_postgres_user
+    generate: false
+  POSTGRES_PASSWORD:
+    required: true
+    default: $PG_DB_PASSWORD
+    alias: PG_DB_PASSWORD
+    generate: false
+  POSTGRES_INITDB_ARGS:
+    required: true
+    default: --auth-host=scram-sha-256
+    generate: false
+
