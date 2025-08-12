@@ -74,6 +74,7 @@ OVERRIDE_CANDIDATES=(
   "$PARENT_DIRNAME/.env"
   "$PARENT_DIRNAME/.env.*"
   "$ENV_DIRNAME/.env"
+  "$ENV_DIRNAME/.env.*"
 )
 
 # Persist generated secrets across builds by reusing values from previous renders
@@ -107,34 +108,44 @@ generate_secret() {
 
 # --- GLOBAL VALUE INGESTION ---
 # Build ALL_VALUES map from all sections/keys in vars.yaml
-ALL_SECTIONS=$($YQ_BIN eval 'keys | .[]' "$VARS_YAML")
+ALL_SECTIONS=$($YQ_BIN eval -r 'keys | .[]' "$VARS_YAML")
+if [[ -z "$ALL_SECTIONS" ]]; then
+  echo "[ERROR] No sections found in $VARS_YAML. Contents:" >&2
+  sed -n '1,120p' "$VARS_YAML" >&2 || true
+  exit 2
+fi
 declare -A ALL_VALUES
 for section in $ALL_SECTIONS; do
   for key in $($YQ_BIN eval ".${section} | keys | .[]" "$VARS_YAML"); do
-    # Check for override in all candidate files
+    # Check for override in all candidate files FIRST
+    override_found=false
     for override_file in "${OVERRIDE_CANDIDATES[@]}"; do
       if [[ -f "$override_file" ]]; then
-        # Grep for the key at the beginning of a line, followed by '='
-        match=$(grep "^${key}=" "$override_file")
+        # Grep for the key at the beginning of a line, followed by '='; tolerate no-match under set -e
+        match=$(grep -m1 "^${key}=" "$override_file" || true)
         if [[ -n "$match" ]]; then
           # Extract the value after the first '='
           value="${match#*=}"
           debug "[DEBUG] Using override for $key from $override_file: $value"
           ALL_VALUES[$key]="$value"
-          continue
+          override_found=true
+          break
         fi
       fi
     done
-
-    generate=$($YQ_BIN eval ".${section}.${key}.generate" "$VARS_YAML")
-    if [[ "$generate" == "true" ]]; then
-      type=$($YQ_BIN eval ".${section}.${key}.type" "$VARS_YAML")
-      ALL_VALUES[$key]="$(generate_secret "$type")"
-      continue
-    fi
-    default=$($YQ_BIN eval ".${section}.${key}.default // \"\"" "$VARS_YAML")
-    if [[ -n "$default" && "$default" != "null" ]]; then
-      ALL_VALUES[$key]="$default"
+    
+    # Only generate if no override was found
+    if [[ "$override_found" == "false" ]]; then
+      generate=$($YQ_BIN eval ".${section}.${key}.generate" "$VARS_YAML")
+      if [[ "$generate" == "true" ]]; then
+        type=$($YQ_BIN eval ".${section}.${key}.type" "$VARS_YAML")
+        ALL_VALUES[$key]="$(generate_secret "$type")"
+        continue
+      fi
+      default=$($YQ_BIN eval ".${section}.${key}.default // \"\"" "$VARS_YAML")
+      if [[ -n "$default" && "$default" != "null" ]]; then
+        ALL_VALUES[$key]="$default"
+      fi
     fi
   done
 done
@@ -157,6 +168,7 @@ fi
 for section in $ALL_SECTIONS; do
   OUT_FILE="$(dirname "$VARS_YAML")/.env.$section"
   echo "[INFO] Rendering $OUT_FILE from $section section of $VARS_YAML using ALL_VALUES"
+  : > "$OUT_FILE"
   {
     for key in $($YQ_BIN eval ".${section} | keys | .[]" "$VARS_YAML"); do
       required=$($YQ_BIN eval ".${section}.${key}.required" "$VARS_YAML")
@@ -174,7 +186,7 @@ for section in $ALL_SECTIONS; do
         echo "$key=$value"
       fi
     done
-  } > "$OUT_FILE"
+  } >> "$OUT_FILE"
   echo "[INFO] Rendered $OUT_FILE from $section section of $VARS_YAML"
 done
 

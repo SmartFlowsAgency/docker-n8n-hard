@@ -89,7 +89,7 @@ services:
       start_period: 40s
     profiles: ["prod"]
   n8n-hard:
-    image: n8nio/n8n:1.22.6
+    image: .n8n.io/n8nio/n8n
     restart: unless-stopped
     container_name: n8n-hard
     depends_on:

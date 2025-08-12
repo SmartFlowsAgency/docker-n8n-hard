@@ -91,24 +91,24 @@ main() {
 
     case "$cmd" in
         setup)
-            bash scripts/setup.sh "$PROJECT_ROOT"
+            bash scripts/setup.sh "${@:2}"
             ;;
         test)
-            bash scripts/test.sh "$PROJECT_ROOT"
+            bash scripts/test.sh "${@:2}"
             ;;
         build)
             check_env_and_config
-            bash scripts/certbot_build.sh "$PROJECT_ROOT"
+            bash scripts/certbot_build.sh "${@:2}"
             ;;
         deploy)
             check_env_and_config
-            bash scripts/deploy.sh "$PROJECT_ROOT"
+            bash scripts/deploy.sh "${@:2}"
             ;;
         down)
             docker-compose down
             ;;
         clean)
-            bash scripts/clean.sh "$PROJECT_ROOT" "${@:2}"
+            bash scripts/clean.sh "${@:2}"
             ;;
         restart)
             docker-compose restart
@@ -120,18 +120,18 @@ main() {
             docker-compose ps
             ;;
         status)
-            bash scripts/status.sh "$PROJECT_ROOT"
+            bash scripts/status.sh "${@:2}"
             ;;
         backup)
-            bash scripts/backup.sh "$PROJECT_ROOT"
+            bash scripts/backup.sh "${@:2}"
             ;;
         cert-init)
             check_env_and_config
-            bash scripts/certbot_init.sh "$PROJECT_ROOT"
+            bash scripts/certbot_init.sh "${@:2}"
             ;;
         cert-renew)
             check_env_and_config
-            bash scripts/certbot_renew.sh "$PROJECT_ROOT"
+            bash scripts/certbot_renew.sh "${@:2}"
             ;;
         help|*)
             print_usage

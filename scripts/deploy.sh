@@ -29,14 +29,13 @@ else
     exit 1
 fi
 
-# Load environment variables
+# Load optional root .env if present (most variables come from env/.env.*)
 if [ -f .env ]; then
     set -a
     source .env
     set +a
 else
-    echo "ERROR: .env file not found. Please run './dn8nh.sh setup' first."
-    exit 1
+    echo "[WARN] .env not found at project root; proceeding with env/.env.* only."
 fi
 
 # Colors for output

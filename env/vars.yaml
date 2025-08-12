@@ -19,7 +19,7 @@ certbot:
 n8n:
   N8N_HOST:
     required: true
-    default: 127.0.0.1
+    default: 127.0.0.0
     generate: false
   N8N_PORT:
     required: true
@@ -30,24 +30,21 @@ n8n:
     default: $BASE_URL
     alias: BASE_URL
     generate: false
+  WEBHOOK_URL:
+    required: false
+    default: $BASE_URL
+    alias: BASE_URL
+    generate: false
   N8N_WEBHOOK_TUNNEL_URL:
     required: false
     generate: false
-  N8N_USER_HOME_DIR:
+  N8N_USER_FOLDER:
     required: true
-    default: n8n_data
+    default: /n8n_data
     generate: false
   N8N_FILES_DIR:
     required: true
-    default: n8n_files
-    generate: false
-  N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:
-    required: true
-    default: true
-    generate: false
-  N8N_SECURE_COOKIE:
-    required: true
-    default: true
+    default: /n8n_files
     generate: false
   N8N_PROTOCOL:
     required: true
@@ -60,6 +57,59 @@ n8n:
   N8N_ADDITIONAL_ALLOWED_ORIGINS:
     required: true
     default: https://api.n8n.io
+    generate: false
+  N8N_BASIC_AUTH_ACTIVE:
+    required: true
+    default: true
+    generate: false
+  N8N_BASIC_AUTH_USER:
+    required: true
+    generate: false
+  N8N_BASIC_AUTH_PASSWORD:
+    required: true
+    generate: true
+    type: random_base64_24
+  N8N_USER_MANAGEMENT_DISABLED:
+    required: false
+    default: true
+    generate: false
+  N8N_ENCRYPTION_KEY:
+    required: true
+    generate: true
+    type: random_base64_32
+  N8N_LOG_LEVEL:
+    required: true
+    default: debug
+    generate: false
+  N8N_LOG_OUTPUT:
+    required: true
+    default: console
+    generate: false
+  N8N_RUNNERS_ENABLED:
+    required: true
+    default: true
+    generate: false
+  N8N_DISABLE_PRODUCTION_MAIN_PROCESS:
+    required: true
+    default: false
+    generate: false
+  N8N_DIAGNOSTICS_ENABLED:
+    required: true
+    default: false
+    generate: false
+  N8N_VERSION_NOTIFICATIONS_ENABLED:
+    required: true
+    default: false
+    generate: false
+  N8N_METRICS:
+    required: true
+    default: false
+    generate: false
+  NODE_FUNCTION_ALLOW_BUILTIN:
+    required: false
+    generate: false
+  NODE_FUNCTION_ALLOW_EXTERNAL:
+    required: false
     generate: false
   DB_TYPE:
     required: true
@@ -86,58 +136,45 @@ n8n:
     default: $PG_DB_PASSWORD
     alias: PG_DB_PASSWORD
     generate: false
-  N8N_BASIC_AUTH_ACTIVE:
-    required: true
-    default: true
+  N8N_HIRING_BANNER_ENABLED:
+    required: false
+    default: false
     generate: false
-  N8N_BASIC_AUTH_USER:
-    required: true
-    generate: false
-  N8N_BASIC_AUTH_PASSWORD:
-    required: true
-    generate: true
-    type: random_base64_24
-  N8N_USER_MANAGEMENT_DISABLED:
+  N8N_ONBOARDING_FLOW_DISABLED:
     required: false
     default: true
     generate: false
-  N8N_ENCRYPTION_KEY:
-    required: true
-    generate: true
-    type: random_base64_32
-  N8N_RUNNERS_ENABLED:
+  N8N_PERSONALIZATION_ENABLED:
+    required: false
+    default: false
+    generate: false
+  N8N_TEMPLATES_ENABLED:
+    required: false
+    default: true
+    generate: false
+  N8N_DISABLE_TELEMETRY:
     required: true
     default: true
     generate: false
-  N8N_DISABLE_PRODUCTION_MAIN_PROCESS:
+  N8N_BLOCK_ENV_ACCESS_IN_NODE:
     required: true
-    default: false
+    default: true
     generate: false
-  NODE_FUNCTION_ALLOW_BUILTIN:
-    required: false
-    generate: false
-  NODE_FUNCTION_ALLOW_EXTERNAL:
-    required: false
-    generate: false
-  N8N_LOG_LEVEL:
+  N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES:
     required: true
-    default: info
+    default: true
     generate: false
-  N8N_LOG_OUTPUT:
+  N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:
     required: true
-    default: console
+    default: true
     generate: false
-  N8N_METRICS:
+  N8N_SECURE_COOKIE:
     required: true
-    default: false
+    default: true
     generate: false
-  N8N_DIAGNOSTICS_ENABLED:
+  N8N_SAMESITE_COOKIE:
     required: true
-    default: false
-    generate: false
-  N8N_VERSION_NOTIFICATIONS_ENABLED:
-    required: true
-    default: false
+    default: secure
     generate: false
 
 overlay:
