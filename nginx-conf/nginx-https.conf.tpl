@@ -43,10 +43,18 @@ http {
     gzip_proxied expired no-cache no-store private auth;
     gzip_types text/plain text/css text/xml text/javascript application/javascript application/json application/xml+rss;
 
+    # Basic bad bot/user-agent filtering
+    #map $http_user_agent $bad_ua {
+    #    default 0;
+    #    ~*(zgrab|libredtail|l9explore|sqlmap|nikto|dirbuster|wpscan|nmap|acunetix|nessus|masscan|curl|wget) 1;
+    #}
+#
     # Rate limiting zones
     limit_req_zone  $binary_remote_addr zone=login:10m rate=5r/s;
     limit_req_zone  $binary_remote_addr zone=api:10m rate=10r/s;
     limit_conn_zone  $binary_remote_addr zone=conn_limit_per_ip:10m;
+    # Generic rate limiting zone for all requests
+    #limit_req_zone  $binary_remote_addr zone=generic:10m rate=30r/m;
 
     # Upstream for n8n
     upstream n8n {
@@ -105,6 +113,9 @@ http {
         # Connection limits
         limit_conn conn_limit_per_ip 50;
 
+        # Block obvious bad user-agents
+        # if ($bad_ua) { return 403; }
+
         # Block common attack patterns
         location ~* \.(aspx|php|jsp|cgi)$ {
             return 444;
@@ -117,8 +128,24 @@ http {
             log_not_found off;
         }
 
+        # Explicitly block environment and VCS files
+        # location ~* (^|/)\.(env(\..*)?|git|svn|hg|DS_Store|htaccess|htpasswd)$ {
+        #     deny all;
+        #     access_log off;
+        #     log_not_found off;
+        # }
+
+        # Block common scanner/probing paths
+        location ~* /(actuator|solr|global-protect|phpmyadmin|wp-admin|wp-login\.php|docker-compose.*|geoserver|console|config\.json) {
+            return 404;
+            access_log off;
+            log_not_found off;
+        }
+
         # Main n8n application
         location / {
+            # Apply generic rate limiting
+            # limit_req zone=generic burst=20 nodelay;
             proxy_pass http://n8n;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;

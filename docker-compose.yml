@@ -89,7 +89,7 @@ services:
       start_period: 40s
     profiles: ["prod"]
   n8n-hard:
-    image: .n8n.io/n8nio/n8n
+    image: docker.n8n.io/n8nio/n8n
     restart: unless-stopped
     container_name: n8n-hard
     depends_on:
@@ -97,7 +97,7 @@ services:
         condition: service_completed_successfully
       n8n-postgres:
         condition: service_healthy
-    read_only: true #test
+    read_only: true
     cap_drop:
       - ALL
     cap_add:
@@ -111,8 +111,6 @@ services:
       - /home/node/.cache:noexec,nosuid,size=100m,uid=1000,gid=1000
       - /home/node/.npm:noexec,nosuid,size=200m,uid=1000,gid=1000
     env_file: env/.env.n8n
-    environment:
-      - N8N_USER_FOLDER=/n8n-data
     volumes:
       - n8n_data:/n8n-data:rw,Z
       - n8n_files:/n8n-files:rw,Z
