@@ -126,8 +126,8 @@ services:
       start_period: 90s
     networks:
       - n8n-network
-    ports:
-      - "5678:5678"
+    expose:
+      - "5678"
     profiles: ["prod"]
   n8n-hard-nginx-prod:
     image: nginx:alpine
