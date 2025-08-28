@@ -178,7 +178,7 @@ n8n:
     generate: false
   N8N_SAMESITE_COOKIE:
     required: true
-    default: secure
+    default: strict
     generate: false
 
 overlay:
