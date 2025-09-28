@@ -243,7 +243,7 @@ extract_existing_encryption_key() {
         if [ -f "$env_file" ]; then
             # Replace or add the encryption key
             if grep -q "^N8N_ENCRYPTION_KEY=" "$env_file"; then
-                sed -i "s/^N8N_ENCRYPTION_KEY=.*/N8N_ENCRYPTION_KEY=$existing_key/" "$env_file"
+                sed -i "s|^N8N_ENCRYPTION_KEY=.*|N8N_ENCRYPTION_KEY=$existing_key|" "$env_file"
             else
                 echo "N8N_ENCRYPTION_KEY=$existing_key" >> "$env_file"
             fi
