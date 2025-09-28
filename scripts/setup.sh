@@ -61,7 +61,7 @@ render_env(){
   else
     echo "[INFO] yq already present at $YQ_BIN"
   fi
-  bash "$ARTIFACT_DIR/scripts/render_env.sh" "$VARS_YAML"
+  bash "$ARTIFACT_DIR/scripts/setup/render_env.sh" "$VARS_YAML"
 }
 
 render_nginx_conf(){
@@ -69,7 +69,7 @@ render_nginx_conf(){
   NGINX_CONF_DIR="$ARTIFACT_DIR/nginx-conf"
   # Use certbot env so N8N_HOST matches the certificate domain
   ENV_FILE="$ENV_DIR/.env.certbot"
-  bash "$SCRIPTS_DIR/render_nginx_conf.sh" "$NGINX_CONF_DIR" "$ENV_FILE"
+  bash "$SCRIPTS_DIR/setup/render_nginx_conf.sh" "$NGINX_CONF_DIR" "$ENV_FILE"
 }
 
 # --- Argument Parsing ---
@@ -95,6 +95,10 @@ export PATH="$ARTIFACT_DIR/bin:$PATH"
 
 # --- Render .env files directly from vars.yaml ---
 render_env
+
+# --- Ensure Docker Volumes Exist ---
+echo "[INFO] Ensuring Docker volumes are created..."
+bash "$SCRIPTS_DIR/setup/ensure_volumes.sh"
 
 # --- Nginx Configuration Rendering ---
 render_nginx_conf

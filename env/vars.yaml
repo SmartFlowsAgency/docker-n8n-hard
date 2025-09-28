@@ -152,6 +152,10 @@ n8n:
     required: false
     default: false
     generate: false
+  TZ:
+    required: false
+    default: US/Central
+    generate: false
   N8N_TEMPLATES_ENABLED:
     required: false
     default: true
@@ -182,6 +186,13 @@ n8n:
     generate: false
 
 overlay:
+  DN8NH_INSTANCE_NAME:
+    required: true
+    generate: false
+  COMPOSE_PROJECT_NAME:
+    required: false
+    default: ${DN8NH_INSTANCE_NAME}
+    generate: false
   BASE_URL:
     required: true
     generate: false
@@ -192,9 +203,6 @@ overlay:
     required: true
     generate: true
     type: random_base64_24
-  LETSENCRYPT_EMAIL:
-    required: true
-    generate: false
   PG_DB_NAME:
     required: true
     generate: false
@@ -202,6 +210,15 @@ overlay:
     required: true
     generate: true
     type: openssl_32
+  LETSENCRYPT_DOMAIN:
+    required: true
+    generate: false
+  LETSENCRYPT_EMAIL:
+    required: true
+    generate: false
+  DN8NH_BACKUP_DIR:
+    required: true
+    generate: false
 
 postgres:
   POSTGRES_DB:

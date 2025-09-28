@@ -134,32 +134,43 @@ cleanup_n8n_networks() {
 # --- Health Check Functions ---
 
 wait_for_container_status() {
-    local container_name="$1"
+    local service_name="$1"
     local expected_status="$2"
     local timeout="${3:-300}"  # 5 minutes default
     local interval=5
     local elapsed=0
-    
-    log_info "Waiting for $container_name to reach status: $expected_status"
-    
+
+    log_info "Waiting for $service_name to reach status: $expected_status"
+
     while [ $elapsed -lt $timeout ]; do
-        local status
-        status=$(docker inspect "$container_name" --format '{{.State.Status}}' 2>/dev/null || echo "not_found")
-        
+        local container_id status
+        container_id=$(docker-compose ps -aq "$service_name" | head -n1 || true)
+
+        if [ -z "$container_id" ]; then
+            echo -n "."
+            sleep $interval
+            elapsed=$((elapsed + interval))
+            continue
+        fi
+
+        status=$(docker inspect "$container_id" --format '{{.State.Status}}' 2>/dev/null || echo "not_found")
+
         if [ "$status" = "$expected_status" ]; then
-            log_info "✓ $container_name is $expected_status"
+            log_info "✓ $service_name is $expected_status"
+            return 0
+        elif [ "$status" = "dead" ] && [ "$expected_status" = "exited" ]; then
+            log_info "✓ $service_name is dead (treated as exited)"
             return 0
         elif [ "$status" = "not_found" ]; then
-            log_error "Container $container_name not found"
-            return 1
+            log_warn "Container for $service_name not found yet; retrying..."
         fi
-        
+
         echo -n "."
         sleep $interval
         elapsed=$((elapsed + interval))
     done
-    
-    log_error "Timeout waiting for $container_name to reach $expected_status"
+
+    log_error "Timeout waiting for $service_name to reach $expected_status"
     return 1
 }
 
@@ -209,6 +220,95 @@ check_prerequisites() {
     return 0
 }
 
+# Extract existing encryption key from n8n volume if present
+extract_existing_encryption_key() {
+    log_step "Checking for existing n8n encryption key..."
+    
+    # Get the actual volume name using the instance prefix
+    local volume_name="${DN8NH_INSTANCE_NAME}_n8n_data"
+    
+    # Check if volume exists and has n8n config
+    local existing_key
+    existing_key=$(docker run --rm -v "$volume_name":/data alpine sh -c '
+        if [ -f /data/.n8n/config ]; then
+            cat /data/.n8n/config | grep -o "\"encryptionKey\":\s*\"[^\"]*\"" | cut -d"\"" -f4
+        fi
+    ' 2>/dev/null || true)
+    
+    if [ -n "$existing_key" ]; then
+        log_info "Found existing encryption key in volume $volume_name"
+        
+        # Update the .env.n8n file with the existing key
+        local env_file="env/.env.n8n"
+        if [ -f "$env_file" ]; then
+            # Replace or add the encryption key
+            if grep -q "^N8N_ENCRYPTION_KEY=" "$env_file"; then
+                sed -i "s/^N8N_ENCRYPTION_KEY=.*/N8N_ENCRYPTION_KEY=$existing_key/" "$env_file"
+            else
+                echo "N8N_ENCRYPTION_KEY=$existing_key" >> "$env_file"
+            fi
+            log_info "✓ Updated $env_file with existing encryption key"
+        else
+            log_warn "Could not find $env_file to update with encryption key"
+        fi
+    else
+        log_info "No existing encryption key found - will use generated key"
+    fi
+}
+
+# Check for existing SSL certificates in certbot volume
+check_existing_certificates() {
+    log_step "Checking for existing SSL certificates..."
+    
+    # Get the actual volume name using the instance prefix
+    local volume_name="${DN8NH_INSTANCE_NAME}_n8n-certbot-etc"
+    
+    # Check if volume exists and has certificates for the domain
+    local cert_exists=false
+    local domain="${LETSENCRYPT_DOMAIN:-${N8N_HOST}}"
+    
+    if [ -z "$domain" ]; then
+        log_warn "No domain specified in LETSENCRYPT_DOMAIN or N8N_HOST"
+        return 1
+    fi
+    
+    log_info "Checking volume: $volume_name"
+    log_info "Looking for certificates for domain: $domain"
+    log_info "Certificate paths: /etc/letsencrypt/live/$domain/fullchain.pem and privkey.pem"
+    
+    # Check for certificate files
+    local cert_check
+    cert_check=$(docker run --rm -v "$volume_name":/etc/letsencrypt alpine sh -c "
+        if [ -f /etc/letsencrypt/live/$domain/fullchain.pem ] && [ -f /etc/letsencrypt/live/$domain/privkey.pem ]; then
+            echo 'certificates_found'
+        else
+            echo 'no_certificates'
+        fi
+    " 2>/dev/null || echo "volume_not_found")
+    
+    case "$cert_check" in
+        "certificates_found")
+            log_info "✓ Found existing SSL certificates for domain: $domain"
+            cert_exists=true
+            ;;
+        "no_certificates")
+            log_info "No existing SSL certificates found for domain: $domain"
+            cert_exists=false
+            ;;
+        "volume_not_found")
+            log_info "Certbot volume not found - will need to generate certificates"
+            cert_exists=false
+            ;;
+    esac
+    
+    # Return 0 if certificates exist, 1 if they don't
+    if [ "$cert_exists" = true ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # --- Main Deployment Logic ---
 
 deploy_stack() {
@@ -232,6 +332,27 @@ deploy_stack() {
     if ! wait_for_container_status "n8n-hard_permissions-init" "exited" 60; then
         log_error "Permissions init container failed"
         exit 1
+    fi
+    
+    # Extract existing encryption key if present
+    extract_existing_encryption_key
+    
+    # Check for existing SSL certificates
+    local has_certificates=false
+    if check_existing_certificates; then
+        has_certificates=true
+        log_info "Will use existing SSL certificates for nginx-prod"
+    else
+        if [ "$ALLOW_HTTP" = true ]; then
+            log_warn "No existing SSL certificates found, but --http flag is set"
+            log_warn "Proceeding with HTTP-only deployment"
+        else
+            log_error "No existing SSL certificates found and HTTPS is required by default"
+            log_error "Either:"
+            log_error "  1. Generate certificates first: docker-compose --profile cert-init up"
+            log_error "  2. Use --http flag for HTTP-only deployment (not recommended for production)"
+            exit 1
+        fi
     fi
     
     # Step 3: Start PostgreSQL
@@ -260,17 +381,24 @@ deploy_stack() {
         exit 1
     fi
     
-    # Step 5: Start nginx reverse proxy
-    log_step "(5/5) Starting nginx reverse proxy..."
-    if ! docker-compose up -d n8n-hard-nginx-prod; then
-        log_error "Failed to start nginx"
-        exit 1
-    fi
-    
-    # Wait for nginx to be healthy
-    if ! wait_for_service_healthy "n8n-hard-nginx-prod" 60; then
-        log_error "nginx failed to become healthy"
-        exit 1
+    # Step 5: Start nginx reverse proxy (conditionally based on certificates)
+    if [ "$has_certificates" = true ]; then
+        log_step "(5/5) Starting nginx reverse proxy with SSL..."
+        if ! docker-compose up -d n8n-hard-nginx-prod; then
+            log_error "Failed to start nginx"
+            exit 1
+        fi
+        
+        # Wait for nginx to be healthy
+        if ! wait_for_service_healthy "n8n-hard-nginx-prod" 60; then
+            log_error "nginx failed to become healthy"
+            exit 1
+        fi
+    else
+        log_step "(5/5) Skipping nginx-prod startup - no SSL certificates found"
+        log_warn "To complete the setup:"
+        log_warn "1. Generate SSL certificates: docker-compose --profile cert-init up"
+        log_warn "2. Start nginx-prod: docker-compose up -d n8n-hard-nginx-prod"
     fi
     
     # Final status check
@@ -296,9 +424,38 @@ cleanup_on_error() {
 # Set up error handling
 trap cleanup_on_error ERR
 
+# --- Argument Parsing ---
+
+parse_deploy_args() {
+    ALLOW_HTTP=false
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --http)
+                ALLOW_HTTP=true
+                log_info "HTTP mode enabled - will skip SSL certificate requirement"
+                shift
+                ;;
+            -h|--help)
+                echo "Usage: $0 [--http]"
+                echo "  --http    Allow deployment without SSL certificates (HTTP only)"
+                exit 0
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                echo "Usage: $0 [--http]"
+                exit 1
+                ;;
+        esac
+    done
+}
+
 # --- Main Execution ---
 
 main() {
+    # Parse command line arguments
+    parse_deploy_args "$@"
+    
     log_step "Starting n8n hardened deployment process..."
     
     # Run cleanup

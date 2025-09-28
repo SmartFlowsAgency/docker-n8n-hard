@@ -9,34 +9,6 @@ if [[ $# -lt 1 || $# -gt 1 ]]; then
   exit 1
 fi
 
-
-# old logic put here to compare before deleting
-render_env_from_yaml() {
-  # --- ENV GENERATION: YAML-DRIVEN ---
-  local YQ_BIN="${1:-0}"
-  local VARS_YAML="${2:-0}"
-  local ENV_OUT_DIR="${3:-0}"
-
-  # Set overlay for build type
-  local OVERLAY_ENV=""
-  if [[ "$ENVIRONMENT" == "prod" || "$ENVIRONMENT" == "dist" ]]; then
-    OVERLAY_ENV="env/.env.prod"
-  else
-    OVERLAY_ENV="env/.env.build"
-  fi
-
-  for section in $($YQ_BIN eval 'keys | .[]' "$VARS_YAML"); do
-    echo "[INFO] Rendering env for $section..."
-    bash scripts/build/env/render_env_from_yaml.sh "$VARS_YAML" "$section" "$ENV_OUT_DIR/.env.$section" "$OVERLAY_ENV"
-    if [[ $? -ne 0 ]]; then
-      echo "[ERROR] Failed to render .env for $section"
-      exit 1
-    fi
-  done
-  # --- END ENV GENERATION: YAML-DRIVEN ---
-}
-
-
 VARS_YAML="$1"
 
 # Resolve ARTIFACT_ROOT

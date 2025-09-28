@@ -2,7 +2,6 @@
 services:
   n8n-hard_permissions-init:
     image: alpine:3.18
-    container_name: n8n-hard_permissions-init
     restart: "no"
     volumes:
       - n8n_data:/n8n-data
@@ -17,7 +16,6 @@ services:
   n8n-nginx-certbot:
     profiles: ["cert-init"]
     image: nginx:alpine
-    container_name: n8n-nginx-certbot
     depends_on:
       n8n-hard_permissions-init:
         condition: service_completed_successfully
@@ -39,7 +37,6 @@ services:
   n8n-certbot:
     profiles: ["cert-init"]
     image: certbot/certbot
-    container_name: n8n-certbot
     env_file: env/.env.certbot
     depends_on:
       n8n-hard_permissions-init:
@@ -57,7 +54,6 @@ services:
   n8n-postgres:
     image: postgres:15-alpine
     restart: unless-stopped
-    container_name: n8n-postgres
     depends_on:
       n8n-hard_permissions-init:
         condition: service_completed_successfully
@@ -89,9 +85,8 @@ services:
       start_period: 40s
     profiles: ["prod"]
   n8n-hard:
-    image: docker.n8n.io/n8nio/n8n:next
+    build: .
     restart: unless-stopped
-    container_name: n8n-hard
     depends_on:
       n8n-hard_permissions-init:
         condition: service_completed_successfully
@@ -117,9 +112,7 @@ services:
       - n8n-nginx-hard_logs:/dn8nh/logs/nginx:ro
       - n8n-certbot-etc:/dn8nh/logs/certbot:ro
     healthcheck:
-      test:
-        - CMD-SHELL
-        - (command -v curl >/dev/null 2>&1 && curl -fsS --max-time 2 http://$$(hostname -i):5678/healthz >/dev/null) || (command -v wget >/dev/null 2>&1 && wget -q --spider --timeout=2 http://$$(hostname -i):5678/healthz) || exit 1
+      test: ["CMD-SHELL","(command -v curl >/dev/null 2>&1 && curl -fsS --max-time 2 http://$$(hostname -i):5678/healthz >/dev/null) || (command -v wget >/dev/null 2>&1 && wget -q --spider --timeout=2 http://$$(hostname -i):5678/healthz) || exit 1"]
       interval: 30s
       timeout: 40s
       retries: 5
@@ -131,7 +124,6 @@ services:
     profiles: ["prod"]
   n8n-hard-nginx-prod:
     image: nginx:alpine
-    container_name: n8n-hard-nginx-prod
     depends_on:
       n8n-hard:
         condition: service_healthy
@@ -139,7 +131,6 @@ services:
         condition: service_completed_successfully
     volumes:
       - n8n-certbot-etc:/etc/letsencrypt:ro
-      - n8n-certbot-www:/var/www/certbot:ro
       - n8n-nginx-hard_logs:/var/log/nginx
       - ./nginx-conf/nginx-https.conf:/etc/nginx/nginx.conf:ro
     ports:
@@ -168,27 +159,29 @@ services:
     profiles: ["prod"]
 volumes:
   n8n_data:
-    driver: local
+    external: true
+    name: "${DN8NH_INSTANCE_NAME}_n8n_data"
   n8n_files:
-    driver: local
+    external: true
+    name: "${DN8NH_INSTANCE_NAME}_n8n_files"
   n8n-postgres_data:
-    driver: local
-  n8n-nginx-hard_logs:
-    driver: local
+    external: true
+    name: "${DN8NH_INSTANCE_NAME}_n8n-postgres_data"
   n8n-certbot-etc:
-    driver: local
+    external: true
+    name: "${DN8NH_INSTANCE_NAME}_n8n-certbot-etc"
   n8n-certbot-www:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: size=1m,uid=1000,gid=1000
+  n8n-nginx-hard_logs:
     driver: local
   n8n-cert-files:
     driver: local
 networks:
   n8n-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
   n8n-cert-net:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 192.168.100.0/24
