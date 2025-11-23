@@ -43,9 +43,9 @@ clean_containers_and_networks() {
     log_step "Stopping and removing containers and networks..."
     
     # Stop and remove all services
-    if docker-compose ps -q | grep -q .; then
+    if docker compose ps -q | grep -q .; then
         log_info "Stopping running services..."
-        docker-compose down --remove-orphans
+        docker compose down --remove-orphans
     else
         log_info "No running services found"
     fi
@@ -72,9 +72,9 @@ clean_containers_and_networks() {
 clean_volumes() {
     log_step "Removing volumes..."
     
-    # Get volume names from docker-compose
+    # Get volume names from docker compose
     local volumes
-    volumes=$(docker-compose config --volumes 2>/dev/null || echo "")
+    volumes=$(docker compose config --volumes 2>/dev/null || echo "")
     
     if [ -n "$volumes" ]; then
         echo "$volumes" | while read -r volume; do

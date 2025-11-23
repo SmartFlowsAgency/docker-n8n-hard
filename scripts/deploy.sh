@@ -144,7 +144,7 @@ wait_for_container_status() {
 
     while [ $elapsed -lt $timeout ]; do
         local container_id status
-        container_id=$(docker-compose ps -aq "$service_name" | head -n1 || true)
+        container_id=$(docker compose ps -aq "$service_name" | head -n1 || true)
 
         if [ -z "$container_id" ]; then
             echo -n "."
@@ -184,7 +184,7 @@ wait_for_service_healthy() {
     
     while [ $elapsed -lt $timeout ]; do
         local health_status
-        health_status=$(docker-compose ps -q "$service_name" | xargs -I {} docker inspect {} --format '{{.State.Health.Status}}' 2>/dev/null || echo "no_healthcheck")
+        health_status=$(docker compose ps -q "$service_name" | xargs -I {} docker inspect {} --format '{{.State.Health.Status}}' 2>/dev/null || echo "no_healthcheck")
         
         case "$health_status" in
             "healthy")
@@ -193,7 +193,7 @@ wait_for_service_healthy() {
                 ;;
             "unhealthy")
                 log_error "$service_name is unhealthy"
-                docker-compose logs --tail=20 "$service_name"
+                docker compose logs --tail=20 "$service_name"
                 return 1
                 ;;
             "starting"|"no_healthcheck")
@@ -209,7 +209,7 @@ wait_for_service_healthy() {
     done
     
     log_error "Timeout waiting for $service_name to become healthy"
-    docker-compose logs --tail=20 "$service_name"
+    docker compose logs --tail=20 "$service_name"
     return 1
 }
 
@@ -316,14 +316,14 @@ deploy_stack() {
     
     # Step 1: Pull latest images
     log_step "(1/5) Pulling latest Docker images..."
-    if ! docker-compose pull; then
+    if ! docker compose pull; then
         log_error "Failed to pull Docker images"
         exit 1
     fi
     
     # Step 2: Run the permissions init container
     log_step "(2/5) Setting up volume permissions..."
-    if ! docker-compose up --no-deps n8n-hard_permissions-init; then
+    if ! docker compose up --no-deps n8n-hard_permissions-init; then
         log_error "Failed to run permissions init container"
         exit 1
     fi
@@ -349,7 +349,7 @@ deploy_stack() {
         else
             log_error "No existing SSL certificates found and HTTPS is required by default"
             log_error "Either:"
-            log_error "  1. Generate certificates first: docker-compose --profile cert-init up"
+            log_error "  1. Generate certificates first: docker compose --profile cert-init up"
             log_error "  2. Use --http flag for HTTP-only deployment (not recommended for production)"
             exit 1
         fi
@@ -357,7 +357,7 @@ deploy_stack() {
     
     # Step 3: Start PostgreSQL
     log_step "(3/5) Starting PostgreSQL database..."
-    if ! docker-compose up -d n8n-postgres; then
+    if ! docker compose up -d n8n-postgres; then
         log_error "Failed to start PostgreSQL"
         exit 1
     fi
@@ -370,7 +370,7 @@ deploy_stack() {
     
     # Step 4: Start n8n application
     log_step "(4/5) Starting n8n application..."
-    if ! docker-compose up -d n8n-hard; then
+    if ! docker compose up -d n8n-hard; then
         log_error "Failed to start n8n"
         exit 1
     fi
@@ -384,7 +384,7 @@ deploy_stack() {
     # Step 5: Start nginx reverse proxy (conditionally based on certificates)
     if [ "$has_certificates" = true ]; then
         log_step "(5/5) Starting nginx reverse proxy with SSL..."
-        if ! docker-compose up -d n8n-hard-nginx-prod; then
+        if ! docker compose up -d n8n-hard-nginx-prod; then
             log_error "Failed to start nginx"
             exit 1
         fi
@@ -397,8 +397,8 @@ deploy_stack() {
     else
         log_step "(5/5) Skipping nginx-prod startup - no SSL certificates found"
         log_warn "To complete the setup:"
-        log_warn "1. Generate SSL certificates: docker-compose --profile cert-init up"
-        log_warn "2. Start nginx-prod: docker-compose up -d n8n-hard-nginx-prod"
+        log_warn "1. Generate SSL certificates: docker compose --profile cert-init up"
+        log_warn "2. Start nginx-prod: docker compose up -d n8n-hard-nginx-prod"
     fi
     
     # Final status check
@@ -410,14 +410,14 @@ deploy_stack() {
     log_info "🔑 Password: (check .env file)"
     echo
     log_info "Service status:"
-    docker-compose ps
+    docker compose ps
 }
 
 # --- Error Handling ---
 
 cleanup_on_error() {
     log_error "Deployment failed. Cleaning up..."
-    docker-compose down --remove-orphans 2>/dev/null || true
+    docker compose down --remove-orphans 2>/dev/null || true
     exit 1
 }
 

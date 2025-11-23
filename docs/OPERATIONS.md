@@ -4,6 +4,16 @@ This guide covers day-to-day operations, backup/restore, updates, SSL renewal, a
 
 ---
 
+## 0. Initial Setup (first run)
+
+- Prerequisites: Docker and Docker Compose v2 (the `docker compose` CLI).
+- Run setup to render envs, ensure volumes, render nginx, and obtain SSL certificates:
+  ```sh
+  ./dn8nh.sh setup
+  ```
+
+---
+
 ## 1. Starting & Stopping the Stack
 
 - **Start (deploy):**
@@ -17,6 +27,11 @@ This guide covers day-to-day operations, backup/restore, updates, SSL renewal, a
 - **View logs:**
   ```sh
   ./dn8nh.sh logs
+  ```
+
+- **Status:**
+  ```sh
+  ./dn8nh.sh status
   ```
 
 ---
@@ -38,14 +53,13 @@ This guide covers day-to-day operations, backup/restore, updates, SSL renewal, a
 
 ## 3. Updating the Stack
 
-- **Update images:**
+- **Update images and redeploy:**
   ```sh
-  docker-compose pull
-  ./dn8nh.sh build
+  docker compose pull
   ./dn8nh.sh deploy
   ```
-- **Review CHANGELOG.md** for breaking changes before updating.
-- Always backup before major updates.
+  - **Review CHANGELOG.md** for breaking changes before updating.
+  - Always backup before major updates.
 
 ---
 
@@ -55,13 +69,25 @@ This guide covers day-to-day operations, backup/restore, updates, SSL renewal, a
   ```sh
   ./dn8nh.sh cert-renew
   ```
-- **Automatic renewal:**
-  - Certbot is scheduled to renew certificates automatically via cron inside the container.
-  - Monitor certificate expiry and logs for errors.
+  - Uses the cert-init profile to run `certbot renew` via webroot and reload nginx.
+
+- **Automatic renewal (optional):**
+  - Not enabled by default. You may add a host cron job to run `./dn8nh.sh cert-renew` periodically (e.g., daily).
+  - Ensure port 80 is available when the renewal runs.
 
 ---
 
-## 5. Troubleshooting
+## 5. HTTP-only fallback (temporary)
+
+- For temporary non-SSL access (e.g., before DNS propagates):
+  ```sh
+  ./dn8nh.sh deploy --http
+  ```
+- Not recommended for production. Switch to HTTPS once certificates are obtained.
+
+---
+
+## 6. Troubleshooting
 
 - **Common issues:**
   - Permissions errors: Ensure `permissions-init` runs and all scripts are executable.
@@ -69,16 +95,16 @@ This guide covers day-to-day operations, backup/restore, updates, SSL renewal, a
   - Service health: Use `./dn8nh.sh logs` and Docker healthchecks to diagnose.
 - **Check service status:**
   ```sh
-  docker-compose ps
+  ./dn8nh.sh status
   ```
 - **Check container logs:**
   ```sh
-  docker-compose logs <service>
+  docker compose logs <service>
   ```
 
 ---
 
-## 6. Best Practices
+## 7. Best Practices
 
 - Regularly update Docker images and run security updates on the host.
 - Store `.env` and backups securely (off-server if possible).
@@ -87,7 +113,7 @@ This guide covers day-to-day operations, backup/restore, updates, SSL renewal, a
 
 ---
 
-## 7. Security Incident Response
+## 8. Security Incident Response
 
 If you suspect a security incident (compromise, intrusion, or data leak):
 
@@ -112,31 +138,31 @@ If you suspect a security incident (compromise, intrusion, or data leak):
    - Update `.env` with new passwords and keys.
    - Restart containers:
    ```bash
-   docker-compose down
-   docker-compose up -d
+   docker compose down
+   docker compose up -d
    ```
 4. **Restore from backup:**
    ```bash
    # Stop services
-   docker-compose down
+   docker compose down
 
    # Restore data
    tar -xzf n8n_backup_YYYYMMDD.tar.gz
 
    # Restart services
-   docker-compose up -d
+   docker compose up -d
    ```
 5. **Reset encryption key (if compromised):**
    ```bash
    NEW_KEY=$(openssl rand -base64 32)
    echo "New encryption key: $NEW_KEY"
    sed -i "s/N8N_ENCRYPTION_KEY=.*/N8N_ENCRYPTION_KEY=$NEW_KEY/" .env
-   docker-compose restart n8n
+   docker compose restart n8n
    ```
 
 ---
 
-## 8. Emergency Contacts
+## 9. Emergency Contacts
 - (Document your incident response team contacts here)
 
 ---

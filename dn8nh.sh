@@ -32,10 +32,10 @@ Usage: ./dn8nh.sh [COMMAND]
 Your friendly neighborhood n8n stack manager.
 
 Commands:
-  setup         - Run the first-time interactive setup to create .env and prepare scripts.
-  test          - Run deployment readiness tests to verify configuration.
-  build         - Generate configs and obtain SSL certificates.
-  deploy        - Runs the orchestrated deployment to bring services up safely.
+  setup         - Install/setup: render envs, ensure volumes, render nginx, obtain SSL certs.
+  install       - Alias for 'setup'.
+  deploy        - Up: orchestrated deployment with health checks and ordering.
+  up            - Alias for 'deploy'.
   down          - Stops and removes all services.
   clean         - Clean up containers, networks, and optionally volumes.
   restart       - Restarts all services.
@@ -43,21 +43,19 @@ Commands:
   ps            - Shows the status of all services.
   status        - Shows detailed status and health information.
   backup        - Creates a compressed backup of PostgreSQL and n8n data.
-  cert-init     - Initialize SSL certificates with Let's Encrypt.
-  cert-renew    - Manually renews SSL certificates.
+  cert-init     - Initialize SSL certificates with Let's Encrypt (advanced).
+  cert-renew    - Manually renew SSL certificates.
   help          - Shows this help message.
 
 Workflow:
   1. ./dn8nh.sh setup
-  2. ./dn8nh.sh test
-  3. ./dn8nh.sh build (generates configs and gets SSL certificates)
-  4. ./dn8nh.sh deploy
+  2. ./dn8nh.sh deploy
 
 EOF
 }
 
 check_profiles_conflict() {
-    if [[ "$1" == "deploy" || "$1" == "build" || "$1" == "cert-init" || "$1" == "cert-renew" ]]; then
+    if [[ "$1" == "deploy" || "$1" == "cert-init" || "$1" == "cert-renew" || "$1" == "up" ]]; then
         # Check if both prod and cert-init containers are running (port 80 conflict)
         local prod_running cert_running
         prod_running=$(docker ps --filter "name=n8n-hard-nginx-prod" --format '{{.Names}}')
@@ -65,7 +63,7 @@ check_profiles_conflict() {
         if [[ -n "$prod_running" && -n "$cert_running" ]]; then
             echo "\n[ERROR] Both prod (n8n-hard-nginx-prod) and cert-init (n8n-nginx-certbot) containers are running. This will cause a port 80 conflict."
             echo "Stop one profile before starting the other."
-            echo "\nTo stop all containers: docker-compose down\n"
+            echo "\nTo stop all containers: docker compose down\n"
             exit 1
         fi
     fi
@@ -93,31 +91,31 @@ main() {
         setup)
             bash scripts/setup.sh "${@:2}"
             ;;
-        test)
-            bash scripts/test.sh "${@:2}"
-            ;;
-        build)
-            check_env_and_config
-            bash scripts/certbot_build.sh "${@:2}"
+        install)
+            bash scripts/setup.sh "${@:2}"
             ;;
         deploy)
             check_env_and_config
             bash scripts/deploy.sh "${@:2}"
             ;;
+        up)
+            check_env_and_config
+            bash scripts/deploy.sh "${@:2}"
+            ;;
         down)
-            docker-compose down
+            docker compose down
             ;;
         clean)
             bash scripts/clean.sh "${@:2}"
             ;;
         restart)
-            docker-compose restart
+            docker compose restart
             ;;
         logs)
-            docker-compose logs -f
+            docker compose logs -f
             ;;
         ps)
-            docker-compose ps
+            docker compose ps
             ;;
         status)
             bash scripts/status.sh "${@:2}"
@@ -127,11 +125,11 @@ main() {
             ;;
         cert-init)
             check_env_and_config
-            bash scripts/certbot_init.sh "${@:2}"
+            bash scripts/certbot/certbot_build.sh "${@:2}"
             ;;
         cert-renew)
             check_env_and_config
-            bash scripts/certbot_renew.sh "${@:2}"
+            bash scripts/certbot/certbot_renew.sh "${@:2}"
             ;;
         help|*)
             print_usage

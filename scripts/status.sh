@@ -31,7 +31,7 @@ check_service_status() {
     local service_name="$1"
     local container_id
     
-    container_id=$(docker-compose ps -q "$service_name" 2>/dev/null || echo "")
+    container_id=$(docker compose ps -q "$service_name" 2>/dev/null || echo "")
     
     if [ -z "$container_id" ]; then
         echo -e "  ${RED}✗${NC} $service_name: Not running"
@@ -92,7 +92,7 @@ show_service_logs() {
     local lines="${2:-10}"
     
     log_step "Recent logs for $service_name:"
-    docker-compose logs --tail="$lines" "$service_name" 2>/dev/null || log_warn "No logs available for $service_name"
+    docker compose logs --tail="$lines" "$service_name" 2>/dev/null || log_warn "No logs available for $service_name"
 }
 
 check_connectivity() {
@@ -130,15 +130,15 @@ check_connectivity() {
 main() {
     log_step "n8n Hardened Stack Status"
     
-    # Check if docker-compose is available
-    if ! command -v docker-compose >/dev/null 2>&1; then
-        log_error "docker-compose not found"
+    # Check if Docker Compose v2 is available
+    if ! docker compose version >/dev/null 2>&1; then
+        log_error "docker compose not found"
         exit 1
     fi
     
     # Check service statuses
     log_step "Service Status:"
-    local services=("n8n-hard_permissions-init" "n8n-postgres" "n8n" "n8n-hard-nginx-prod")
+    local services=("n8n-postgres" "n8n-hard" "n8n-hard-nginx-prod")
     local failed=0
     
     for service in "${services[@]}"; do
@@ -162,7 +162,7 @@ main() {
     
     # Show resource usage
     log_step "Resource Usage:"
-    docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+    docker compose ps
     
     # Option to show logs for failed services
     if [ $failed -gt 0 ]; then
@@ -170,7 +170,7 @@ main() {
         log_step "Recent logs for troubleshooting:"
         for service in "${services[@]}"; do
             local container_id
-            container_id=$(docker-compose ps -q "$service" 2>/dev/null || echo "")
+            container_id=$(docker compose ps -q "$service" 2>/dev/null || echo "")
             if [ -n "$container_id" ]; then
                 local status
                 status=$(docker inspect "$container_id" --format '{{.State.Status}}' 2>/dev/null || echo "unknown")

@@ -1,50 +1,74 @@
-# Configuration Reference: Hardened n8n Docker Stack
+# Configuration (Artifact Users)
 
-This document explains all environment variables and configuration options used in the stack.
-
----
-
-## .env File Variables
-
-| Variable                  | Description                                              | Example / Default         |
-|---------------------------|----------------------------------------------------------|---------------------------|
-| N8N_HOST                  | Public domain name for your n8n instance                 | n8n.example.com           |
-| N8N_PROTOCOL              | Protocol for n8n (should be 'https')                     | https                    |
-| N8N_PORT                  | Port for n8n internal service                            | 5678                     |
-| N8N_ENCRYPTION_KEY        | Key for encrypting credentials/secrets in n8n            | (auto-generated)          |
-| N8N_BASIC_AUTH_ACTIVE     | Enable basic auth for n8n UI/API                         | true                     |
-| N8N_BASIC_AUTH_USER       | Username for basic auth                                  | admin                    |
-| N8N_BASIC_AUTH_PASSWORD   | Password for basic auth                                  | (auto-generated)          |
-| POSTGRES_DB               | Database name for n8n                                    | n8n                      |
-| POSTGRES_USER             | Database user                                            | n8n                      |
-| POSTGRES_PASSWORD         | Database password                                        | (auto-generated)          |
-| LETSENCRYPT_EMAIL         | Email for Let's Encrypt notifications                    | user@example.com          |
-| GENERIC_TIMEZONE          | Timezone for containers                                  | America/New_York          |
-| N8N_USER_HOME_DIRECTORY   | Home dir for n8n user data                               | /home/node/.n8n           |
-| N8N_EDITOR_BASE_URL       | Public URL for n8n editor (if needed)                    | https://n8n.example.com   |
-| N8N_WEBHOOK_TUNNEL_URL    | Public URL for webhooks (if needed)                      | (optional)                |
+This guide explains how to configure the artifact before running setup and deploy.
 
 ---
 
-## Docker Compose Service Configs
+## Required values
 
-- **Volumes**: See [ARCHITECTURE.md](ARCHITECTURE.md) for details on what each volume stores.
-- **Networks**: `n8n-network` (main), `cert-net` (certbot/acme only)
-- **Healthchecks**: Each service defines a healthcheck for robust orchestration.
+| Variable           | Description                                   | Example                |
+|--------------------|-----------------------------------------------|------------------------|
+| N8N_HOST           | Public domain name for your n8n instance       | n8n.example.com        |
+| LETSENCRYPT_EMAIL  | Email for Let's Encrypt notifications          | admin@example.com      |
+
+Notes:
+- Use a domain that resolves to this server before running `./dn8nh.sh setup`.
+- Certificates are obtained during setup via the cert-init flow.
+
+## Common optional values
+
+| Variable                  | Description                                              | Example / Default |
+|---------------------------|----------------------------------------------------------|-------------------|
+| N8N_BASIC_AUTH_ACTIVE     | Enable basic auth for n8n UI/API                         | true              |
+| N8N_BASIC_AUTH_USER       | Username for basic auth                                  | admin             |
+| N8N_BASIC_AUTH_PASSWORD   | Password for basic auth                                  | (generated)       |
+| N8N_ENCRYPTION_KEY        | Key to encrypt credentials in n8n                        | (generated)       |
+| N8N_EDITOR_BASE_URL       | Public URL for n8n editor                                | https://your.domain |
+| TZ                        | Timezone for containers                                  | UTC               |
+| DN8NH_INSTANCE_NAME       | Instance/project name used to prefix volumes             | production        |
+| COMPOSE_PROJECT_NAME      | Compose project name (defaults to DN8NH_INSTANCE_NAME)   | production        |
+
+Most other values are pre-set for hardened defaults and do not require changes.
 
 ---
 
-## Nginx Configuration
+## Env overlays (how configuration is applied)
 
-- Generated from `nginx-https.conf.template` using `envsubst` with your domain.
-- SSL certificates are stored in `/etc/letsencrypt` (read-only for nginx).
+- The setup process renders environment files under `env/` from a template.
+- Files you will see/use in the artifact:
+  - `env/.env.n8n` — n8n service settings
+  - `env/.env.postgres` — Postgres settings
+  - `env/.env.certbot` — Domain/email used for certificate issuance
+  - `env/.env.overlay` — Optional user overrides applied during setup
+
+Internally, these are rendered from a template (`env/vars.yaml`) by setup.
 
 ---
 
-## Customization Tips
+## Instance naming and volumes
 
-- You may add more environment variables or override defaults in `.env` as needed.
-- For advanced n8n or Postgres options, consult upstream docs and extend your `.env` accordingly.
+- `DN8NH_INSTANCE_NAME` controls the prefix for external Docker volumes.
+  - Example volume names:
+    - `${DN8NH_INSTANCE_NAME}_n8n_data`
+    - `${DN8NH_INSTANCE_NAME}_n8n_files`
+    - `${DN8NH_INSTANCE_NAME}_n8n-postgres_data`
+    - `${DN8NH_INSTANCE_NAME}_n8n-certbot-etc`
+- `COMPOSE_PROJECT_NAME` affects container and network names (defaults to the instance name).
+
+## Where certificates live
+
+- Certificates are stored in the Docker volume `${DN8NH_INSTANCE_NAME}_n8n-certbot-etc`.
+- Mounted in containers at `/etc/letsencrypt`.
+- Live certs for your domain:
+  - `/etc/letsencrypt/live/$N8N_HOST/fullchain.pem`
+  - `/etc/letsencrypt/live/$N8N_HOST/privkey.pem`
+
+---
+
+## Customization tips
+
+- Use `env/.env.overlay` for quick overrides without editing generated files.
+- For advanced n8n/Postgres options, extend `env/.env.n8n` and `env/.env.postgres` accordingly.
 
 ---
 

@@ -1,4 +1,4 @@
-# Hardened n8n Docker Setup
+# Hardened n8n Docker Stack
 
 ## Objective
 Deploy a production-ready n8n automation server with enterprise-grade security hardening and automated SSL certificate management.
@@ -100,7 +100,7 @@ cd docker-n8n-hard
 
 ## 🛠️ Troubleshooting & Notes
 
-- **Do not** use `docker-compose up` directly; always use `./dn8nh.sh deploy` for correct startup order and permission handling.
+- **Do not** use `docker compose up` directly; always use `./dn8nh.sh deploy` for correct startup order and permission handling.
 - If setup or build fails, check for missing prerequisites, domain misconfiguration, or permission issues.
 - All secrets are stored in `.env`—keep this file secure.
 - For advanced details, see the `docs/` directory.

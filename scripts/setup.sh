@@ -5,10 +5,6 @@ set -euo pipefail
 # This script prepares the artifact for deployment.
 # It renders .env templates, generates secrets, and validates configuration.
 
-# --- Ensure running from artifact directory ---
-EXPECTED_ENV_DIR_NAME="env"
-EXPECTED_SCRIPT_PARENT="src"
-
 # --- Configuration & Paths ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ARTIFACT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -72,6 +68,17 @@ render_nginx_conf(){
   bash "$SCRIPTS_DIR/setup/render_nginx_conf.sh" "$NGINX_CONF_DIR" "$ENV_FILE"
 }
 
+obtain_initial_certs(){
+  echo "[INFO] Obtaining initial SSL certificates (cert-init profile)..."
+  # Ensure prod nginx is not running to avoid port 80 conflict
+  if docker ps --filter "name=n8n-hard-nginx-prod" --format '{{.Names}}' | grep -q .; then
+    echo "[ERROR] n8n-hard-nginx-prod is running. Stop it before obtaining certificates (port 80 is required)." >&2
+    echo "Hint: run 'docker compose down' or './dn8nh.sh down' and re-run setup." >&2
+    exit 1
+  fi
+  bash "$SCRIPTS_DIR/certbot/certbot_build.sh"
+}
+
 # --- Argument Parsing ---
 NO_INTERACTIVE=""
 
@@ -103,5 +110,7 @@ bash "$SCRIPTS_DIR/setup/ensure_volumes.sh"
 # --- Nginx Configuration Rendering ---
 render_nginx_conf
 
+# --- Obtain initial SSL certificates ---
+obtain_initial_certs
 
 echo "[SUCCESS] Artifact setup complete."

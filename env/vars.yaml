@@ -189,9 +189,8 @@ overlay:
   DN8NH_INSTANCE_NAME:
     required: true
     generate: false
-  COMPOSE_PROJECT_NAME:
-    required: false
-    default: ${DN8NH_INSTANCE_NAME}
+  DN8NH_BACKUP_DIR:
+    required: true
     generate: false
   BASE_URL:
     required: true
@@ -214,9 +213,6 @@ overlay:
     required: true
     generate: false
   LETSENCRYPT_EMAIL:
-    required: true
-    generate: false
-  DN8NH_BACKUP_DIR:
     required: true
     generate: false
 
