@@ -9,9 +9,11 @@ echo "Domain: ${N8N_HOST:-not set}"
 echo ""
 # Ensure only the cert-init profile is active for this step
 export COMPOSE_PROFILES=cert-init
+# Use dn8nh-{instance} as Compose project name for consistent container prefixes
+export COMPOSE_PROJECT_NAME="dn8nh-${DN8NH_INSTANCE_NAME:-default}"
 # Proactively remove any previous cert-init containers
-docker compose rm -sf n8n-nginx-certbot n8n-certbot || true
-docker compose up --abort-on-container-exit n8n-hard_permissions-init n8n-nginx-certbot n8n-certbot
+docker compose rm -sf nginx-certbot certbot || true
+docker compose up --abort-on-container-exit permissions-init nginx-certbot certbot
 echo ""
 echo "Build completed. Check above output for any certificate errors."
 echo "If certificates were obtained successfully, you can now run './dn8nh.sh deploy'"

@@ -138,7 +138,7 @@ main() {
     
     # Check service statuses
     log_step "Service Status:"
-    local services=("n8n-postgres" "n8n-hard" "n8n-hard-nginx-prod")
+    local services=("postgres" "n8n" "nginx-rproxy")
     local failed=0
     
     for service in "${services[@]}"; do

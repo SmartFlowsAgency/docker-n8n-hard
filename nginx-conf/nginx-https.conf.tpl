@@ -58,7 +58,7 @@ http {
 
     # Upstream for n8n
     upstream n8n {
-        server n8n-hard:5678;
+        server n8n:5678;
     }
 
     # HTTP server for ACME challenge and redirect

@@ -121,7 +121,7 @@ n8n:
     generate: false
   DB_POSTGRESDB_HOST:
     required: true
-    default: n8n-postgres
+    default: postgres
     generate: false
   DB_POSTGRESDB_PORT:
     required: true

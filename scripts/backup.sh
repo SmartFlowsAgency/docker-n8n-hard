@@ -78,7 +78,7 @@ if [[ "$PAUSE_SERVICES" == true ]]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Pausing n8n services for consistent backup..."
     cd "$PROJECT_ROOT"
     if [[ -f "docker-compose.yml" ]]; then
-        if docker compose stop n8n-hard 2>/dev/null; then
+        if docker compose stop n8n 2>/dev/null; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Services paused successfully"
             SERVICES_WERE_PAUSED=true
         else
@@ -136,7 +136,7 @@ done
 if [[ "$SERVICES_WERE_PAUSED" == true ]]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Resuming n8n services..."
     cd "$PROJECT_ROOT"
-    if docker compose start n8n-hard 2>/dev/null; then
+    if docker compose start n8n 2>/dev/null; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Services resumed successfully"
     else
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Warning: Failed to resume services - you may need to start them manually"
