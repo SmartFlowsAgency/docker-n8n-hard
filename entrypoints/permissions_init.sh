@@ -5,8 +5,10 @@ echo "Setting up directory permissions..."
 
 # PostgreSQL data (postgres:15-alpine uses UID/GID 999)
 mkdir -p /postgres-data
-chown -R 999:999 /postgres-data
-chmod -R 700 /postgres-data
+chown -R 70:70 /postgres-data
+# Directories 700, files 600 as recommended by PostgreSQL
+find /postgres-data -type d -exec chmod 700 {} \;
+find /postgres-data -type f -exec chmod 600 {} \;
 echo "✓ PostgreSQL permissions set"
 
 # N8N data (n8nio/n8n uses UID/GID 1000 - node user)

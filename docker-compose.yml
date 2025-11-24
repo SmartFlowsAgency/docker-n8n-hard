@@ -1,6 +1,6 @@
 ---
 services:
-  n8n-hard_permissions-init:
+  permissions-init:
     image: alpine:3.18
     restart: "no"
     volumes:
@@ -8,22 +8,22 @@ services:
       - n8n_files:/n8n-files
       - n8n-postgres_data:/postgres-data
       - n8n-certbot-etc:/certbot-etc
-      - n8n-certbot-www:/certbot-www
-      - n8n-nginx-hard_logs:/nginx-logs
+      - n8n-nginx_logs:/nginx-logs
       - ./entrypoints/permissions_init.sh:/permissions_init.sh:ro
     entrypoint: ["sh", "permissions_init.sh"]
     command: []
-  n8n-nginx-certbot:
+  nginx-certbot:
     profiles: ["cert-init"]
     image: nginx:alpine
     depends_on:
-      n8n-hard_permissions-init:
+      permissions-init:
         condition: service_completed_successfully
     volumes:
       - n8n-certbot-etc:/etc/letsencrypt
-      - n8n-certbot-www:/var/www/certbot
       - /var/run/docker.sock:/var/run/docker.sock
       - ./nginx-conf/nginx-http.conf:/etc/nginx/nginx.conf:ro
+    tmpfs:
+      - /var/www/certbot:rw,noexec,nosuid,size=1m
     ports:
       - "80:80"
     networks:
@@ -34,24 +34,25 @@ services:
       timeout: 10s
       retries: 5
       start_period: 15s
-  n8n-certbot:
+  certbot:
     profiles: ["cert-init"]
     image: certbot/certbot
     env_file: env/.env.certbot
     depends_on:
       n8n-hard_permissions-init:
         condition: service_completed_successfully
-      n8n-nginx-certbot:
+      nginx-certbot:
         condition: service_healthy
     volumes:
       - n8n-certbot-etc:/etc/letsencrypt
-      - n8n-certbot-www:/var/www/certbot
       - /var/run/docker.sock:/var/run/docker.sock
       - ./entrypoints/certbot_entrypoint.sh:/certbot_entrypoint.sh:ro
+    tmpfs:
+      - /var/www/certbot:rw,noexec,nosuid,size=1m
     entrypoint: ["sh", "/certbot_entrypoint.sh"]
     networks:
       - n8n-cert-net
-  n8n-postgres:
+  postgres:
     image: postgres:15-alpine
     restart: unless-stopped
     depends_on:
@@ -84,13 +85,13 @@ services:
       retries: 3
       start_period: 40s
     profiles: ["prod"]
-  n8n-hard:
+  n8n:
     build: .
     restart: unless-stopped
     depends_on:
       n8n-hard_permissions-init:
         condition: service_completed_successfully
-      n8n-postgres:
+      postgres:
         condition: service_healthy
     read_only: true
     cap_drop:
@@ -109,7 +110,7 @@ services:
     volumes:
       - n8n_data:/n8n_data:rw,Z
       - n8n_files:/n8n_files:rw,Z
-      - n8n-nginx-hard_logs:/dn8nh/logs/nginx:ro
+      - n8n-nginx_logs:/dn8nh/logs/nginx:ro
       - n8n-certbot-etc:/dn8nh/logs/certbot:ro
     healthcheck:
       test: ["CMD-SHELL","(command -v curl >/dev/null 2>&1 && curl -fsS --max-time 2 http://$$(hostname -i):5678/healthz >/dev/null) || (command -v wget >/dev/null 2>&1 && wget -q --spider --timeout=2 http://$$(hostname -i):5678/healthz) || exit 1"]
@@ -122,16 +123,16 @@ services:
     expose:
       - "5678"
     profiles: ["prod"]
-  n8n-hard-nginx-prod:
+  nginx-rproxy:
     image: nginx:alpine
     depends_on:
-      n8n-hard:
+      n8n:
         condition: service_healthy
       n8n-hard_permissions-init:
         condition: service_completed_successfully
     volumes:
       - n8n-certbot-etc:/etc/letsencrypt:ro
-      - n8n-nginx-hard_logs:/var/log/nginx
+      - n8n-nginx_logs:/var/log/nginx
       - ./nginx-conf/nginx-https.conf:/etc/nginx/nginx.conf:ro
     ports:
       - "80:80"
@@ -170,13 +171,7 @@ volumes:
   n8n-certbot-etc:
     external: true
     name: "${DN8NH_INSTANCE_NAME}_n8n-certbot-etc"
-  n8n-certbot-www:
-    driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: size=1m,uid=1000,gid=1000
-  n8n-nginx-hard_logs:
+  n8n-nginx_logs:
     driver: local
   n8n-cert-files:
     driver: local

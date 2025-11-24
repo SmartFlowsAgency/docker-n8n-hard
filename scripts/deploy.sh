@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Deployment script for the n8n-hardened stack.
+# Deployment script for the n8nened stack.
 # This script orchestrates the startup sequence based on docker-compose.yml logic.
 #
 
@@ -56,14 +56,14 @@ log_step() { echo -e "\n${BLUE}▶${NC} $1"; }
 # Remove networks using conflicting subnets
 remove_conflicting_subnet_networks() {
     local subnets=("172.20.0.0/24" "192.168.100.0/24")
-    
+
     log_step "Checking for conflicting Docker networks..."
-    
+
     for subnet in "${subnets[@]}"; do
         # Get networks using this subnet
         local conflicting_networks
         conflicting_networks=$(docker network ls --format "{{.ID}}" | xargs -I {} sh -c 'docker network inspect {} --format "{{.Name}} {{range .IPAM.Config}}{{.Subnet}}{{end}}" 2>/dev/null || true' | grep "$subnet" | cut -d' ' -f1 || true)
-        
+
         if [ -n "$conflicting_networks" ]; then
             log_warn "Found networks using conflicting subnet $subnet"
             echo "$conflicting_networks" | while read -r netname; do
@@ -99,9 +99,9 @@ remove_conflicting_subnet_networks() {
 # Remove containers that would conflict with deployment
 cleanup_conflicting_containers() {
     log_step "Cleaning up conflicting containers..."
-    
+
     # Get actual container names from docker-compose
-    local containers=("n8n-hard_permissions-init" "n8n-hard" "n8n-postgres" "n8n-hard-nginx-prod" "n8n-nginx-certbot" "n8n-certbot")
+    local containers=("permissions-init" "n8n-hard" "postgres" "nginx-rproxy" "n8n-nginx-certbot" "n8n-certbot")
     
     for cname in "${containers[@]}"; do
         if docker ps -a --format '{{.Names}}' | grep -q "^$cname$"; then
@@ -406,7 +406,7 @@ deploy_stack() {
     echo
     log_info "🎉 Your hardened n8n instance is now running!"
     log_info "🌐 Access URL: https://${N8N_HOST}"
-    log_info "👤 Username: ${N8N_AUTH_USER}"
+    log_info "👤 Username: ${N8N_BASIC_AUTH_USER}"
     log_info "🔑 Password: (check .env file)"
     echo
     log_info "Service status:"

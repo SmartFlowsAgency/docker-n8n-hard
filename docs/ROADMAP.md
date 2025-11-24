@@ -6,7 +6,7 @@ This roadmap outlines planned features, improvements, and logical next steps for
 - **Analyze logs with free calls to groq**
 - **Gracefully downgrade n8n to old version**
 - **Detect startup status and remove manual initialization**
-- **Improve cleanup for docker-compose down**
+- **Improve cleanup for docker compose down**
 - **Expand Logging and Monitoring capabilities**
 
 ## Next Steps

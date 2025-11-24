@@ -151,8 +151,14 @@ for section in $ALL_SECTIONS; do
         value="${ALL_VALUES[$ref_var]:-}"
       fi
       if [[ -z "$value" && "$required" == "true" ]]; then
-        echo "[ERROR] Required variable $key missing for section $section" >&2
-        continue
+        # Fallback to schema default if present (handles boolean defaults when value resolved empty)
+        def=$($YQ_BIN eval ".${section}.${key}.default // \"\"" "$VARS_YAML")
+        if [[ -n "$def" && "$def" != "null" ]]; then
+          value="$def"
+        else
+          echo "[ERROR] Required variable $key missing for section $section" >&2
+          continue
+        fi
       fi
       if [[ -n "$value" ]]; then
         echo "$key=$value"
