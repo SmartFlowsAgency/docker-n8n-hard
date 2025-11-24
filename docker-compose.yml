@@ -39,7 +39,7 @@ services:
     image: certbot/certbot
     env_file: env/.env.certbot
     depends_on:
-      n8n-hard_permissions-init:
+      permissions-init:
         condition: service_completed_successfully
       nginx-certbot:
         condition: service_healthy
@@ -56,7 +56,7 @@ services:
     image: postgres:15-alpine
     restart: unless-stopped
     depends_on:
-      n8n-hard_permissions-init:
+      permissions-init:
         condition: service_completed_successfully
     # Temporarily remove security constraints to isolate the permission issue
     # cap_drop:
@@ -128,7 +128,7 @@ services:
     depends_on:
       n8n:
         condition: service_healthy
-      n8n-hard_permissions-init:
+      permissions-init:
         condition: service_completed_successfully
     volumes:
       - n8n-certbot-etc:/etc/letsencrypt:ro
