@@ -45,8 +45,10 @@ This catalog documents the scripts included in this repository, their purpose, u
     - `./dn8nh.sh restore --from=./backups ${DN8NH_INSTANCE_NAME}_n8n_data-YYYYMMDD-HHMMSS.tar.gz ...`
     - Per-volume files:
       - `--n8n-data-archive=FILE` `--n8n-files-archive=FILE` `--postgres-archive=FILE` `--certs-archive=FILE`
-    - Print resolved volume names and expected archive patterns:
+        - Print resolved volume names and expected archive patterns:
       - `./dn8nh.sh restore --print-config [--from=DIR]`
+    - Preserve existing certificates:
+      - `--preserve-certs`
   - Volume overrides (env):
     - `N8N_DATA_VOLUME_NAME`, `N8N_FILES_VOLUME_NAME`, `POSTGRES_DATA_VOLUME_NAME`, `CERTBOT_ETC_VOLUME_NAME`
     - If set in `.env`, backup and restore use these names instead of `${DN8NH_INSTANCE_NAME}_...` defaults.

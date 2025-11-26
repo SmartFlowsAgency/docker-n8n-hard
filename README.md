@@ -87,6 +87,8 @@ The stack includes simple commands for backing up and restoring your critical da
 - **`./dn8nh.sh backup`**: Creates compressed `tar.gz` archives of your `n8n` and `postgres` data volumes in the `backups/` directory.
 - **`./dn8nh.sh restore`**: Provides a flexible restore system. You can restore the latest backups, select archives interactively, or specify exact files for each volume.
 
+A key option is `--preserve-certs` to prevent overwriting your existing SSL certificates.
+
 For detailed options and examples, see the [Operations & Maintenance Guide](docs/OPERATIONS.md).
 
 ## 📁 Project Structure

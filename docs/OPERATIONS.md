@@ -60,6 +60,7 @@ This guide covers day-to-day operations, backup/restore, updates, SSL renewal, a
     - `--restart`  Start postgres, n8n, and nginx-rproxy after restore
     - `--dry-run`  Show what would happen without making changes
     - `--print-config` Print resolved volume names and expected archive patterns, then exit
+    - `--preserve-certs` Do not restore certificate volume; leave existing certs untouched
   - Restore specific archives:
     ```sh
     ./dn8nh.sh restore --from=./backups \
