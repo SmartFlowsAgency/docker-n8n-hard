@@ -53,18 +53,24 @@ if [[ -z "$BACKUP_DIR" ]]; then
     BACKUP_DIR="${DN8NH_BACKUP_DIR:-$(cd "$PROJECT_ROOT/.." && pwd)/backups}"
 fi
 
-# Volumes to backup (with project prefix)
+# Volumes to backup (with support for explicit overrides)
 PROJECT_NAME="${DN8NH_INSTANCE_NAME:-${COMPOSE_PROJECT_NAME:-$(basename "$PROJECT_ROOT")}}"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using project name: $PROJECT_NAME"
+
+VOL_N8N_DATA="${N8N_DATA_VOLUME_NAME:-${PROJECT_NAME}_n8n_data}"
+VOL_N8N_FILES="${N8N_FILES_VOLUME_NAME:-${PROJECT_NAME}_n8n_files}"
+VOL_POSTGRES="${POSTGRES_DATA_VOLUME_NAME:-${PROJECT_NAME}_n8n-postgres_data}"
+VOL_CERTS="${CERTBOT_ETC_VOLUME_NAME:-${PROJECT_NAME}_n8n-certbot-etc}"
+
 VOLUMES=(
-    "${PROJECT_NAME}_n8n_data"
-    "${PROJECT_NAME}_n8n_files"
-    "${PROJECT_NAME}_n8n-postgres_data"
+    "$VOL_N8N_DATA"
+    "$VOL_N8N_FILES"
+    "$VOL_POSTGRES"
 )
 
 # Add certificate volumes if requested
 if [[ "$INCLUDE_CERTS" == true ]]; then
-    VOLUMES+=("${PROJECT_NAME}_n8n-certbot-etc")
+    VOLUMES+=("$VOL_CERTS")
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Including certificate volumes in backup"
 fi
 

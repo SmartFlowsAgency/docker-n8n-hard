@@ -21,6 +21,7 @@ This catalog documents the scripts included in this repository, their purpose, u
     - `ps` → `docker compose ps`
     - `status` → `scripts/status.sh`
     - `backup` → `scripts/backup.sh`
+    - `restore` → `scripts/restore.sh`
     - `cert-init` → `scripts/certbot/certbot_build.sh`
     - `cert-renew` → `scripts/certbot/certbot_renew.sh`
   - Notes:
@@ -31,6 +32,24 @@ This catalog documents the scripts included in this repository, their purpose, u
 ---
 
 ## Operations
+
+- **scripts/restore.sh**
+  - Purpose: Restore Docker volumes from backups created by `scripts/backup.sh`.
+  - Features:
+    - Auto-detects project/instance name; restores archives per volume.
+    - Supports wiping existing volume contents before restore.
+    - Can auto-select latest backups per volume base.
+    - Optionally restarts services and reloads nginx if certs restored.
+  - Usage:
+    - `./dn8nh.sh restore --latest [--wipe-before] [--restart] [--dry-run]`
+    - `./dn8nh.sh restore --from=./backups ${DN8NH_INSTANCE_NAME}_n8n_data-YYYYMMDD-HHMMSS.tar.gz ...`
+    - Per-volume files:
+      - `--n8n-data-archive=FILE` `--n8n-files-archive=FILE` `--postgres-archive=FILE` `--certs-archive=FILE`
+    - Print resolved volume names and expected archive patterns:
+      - `./dn8nh.sh restore --print-config [--from=DIR]`
+  - Volume overrides (env):
+    - `N8N_DATA_VOLUME_NAME`, `N8N_FILES_VOLUME_NAME`, `POSTGRES_DATA_VOLUME_NAME`, `CERTBOT_ETC_VOLUME_NAME`
+    - If set in `.env`, backup and restore use these names instead of `${DN8NH_INSTANCE_NAME}_...` defaults.
 
 - **scripts/deploy.sh**
   - Purpose: Orchestrates safe startup for the hardened stack.
@@ -53,6 +72,8 @@ This catalog documents the scripts included in this repository, their purpose, u
 - **scripts/backup.sh**
   - Purpose: Back up key Docker volumes for the instance.
   - Volumes: `${PROJECT}_n8n_data`, `${PROJECT}_n8n_files`, `${PROJECT}_n8n-postgres_data` (+ certs if `--include-certs`).
+  - Honors volume overrides via env:
+    - `N8N_DATA_VOLUME_NAME`, `N8N_FILES_VOLUME_NAME`, `POSTGRES_DATA_VOLUME_NAME`, `CERTBOT_ETC_VOLUME_NAME`.
   - Derives project prefix from `DN8NH_INSTANCE_NAME` or `COMPOSE_PROJECT_NAME`.
   - Usage: `scripts/backup.sh [--include-certs] [--pause] [--dry-run] [--dest=PATH]`
 
@@ -98,8 +119,8 @@ This catalog documents the scripts included in this repository, their purpose, u
   - Purpose: Bring up temporary nginx and certbot to obtain certificates.
   - Behavior:
     - Sets `COMPOSE_PROFILES=cert-init`.
-    - Removes previous `n8n-nginx-certbot` and `n8n-certbot` containers.
-    - Runs: `n8n-hard_permissions-init`, `n8n-nginx-certbot`, `n8n-certbot` with `--abort-on-container-exit`.
+    - Removes previous `nginx-certbot` and `certbot` containers.
+    - Runs: `permissions-init`, `nginx-certbot`, `certbot` with `--abort-on-container-exit`.
   - Used by: `./dn8nh.sh setup` and `./dn8nh.sh cert-init`.
   - Requires: DNS A/AAAA record for `N8N_HOST` pointing at the server.
 
@@ -129,12 +150,12 @@ This catalog documents the scripts included in this repository, their purpose, u
 ## Compose Integration (Reference)
 
 - `docker-compose.yml` services of interest:
-  - `n8n-hard_permissions-init` → runs `entrypoints/permissions_init.sh`.
-  - `n8n-nginx-certbot` (profile `cert-init`) → uses `nginx-conf/nginx-http.conf` for ACME http-01.
-  - `n8n-certbot` (profile `cert-init`) → uses `entrypoints/certbot_entrypoint.sh`.
-  - `n8n-postgres` → prod profile service; healthchecked.
-  - `n8n-hard` → prod profile service; healthchecked; mounts volumes and logs.
-  - `n8n-hard-nginx-prod` → prod profile service; uses `nginx-conf/nginx-https.conf` and certbot volume.
+  - `permissions-init` → runs `entrypoints/permissions_init.sh`.
+  - `nginx-certbot` (profile `cert-init`) → uses `nginx-conf/nginx-http.conf` for ACME http-01.
+  - `certbot` (profile `cert-init`) → uses `entrypoints/certbot_entrypoint.sh`.
+  - `postgres` → prod profile service; healthchecked.
+  - `n8n` → prod profile service; healthchecked; mounts volumes and logs.
+  - `nginx-rproxy` → prod profile service; uses `nginx-conf/nginx-https.conf` and certbot volume.
 
 ---
 

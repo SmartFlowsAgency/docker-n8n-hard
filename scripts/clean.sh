@@ -51,7 +51,7 @@ clean_containers_and_networks() {
     fi
     
     # Remove any leftover containers manually
-    local containers=("n8n-hard_permissions-init" "n8n-hard" "n8n-postgres" "n8n-hard-nginx-prod" "n8n-nginx-certbot" "n8n-certbot")
+    local containers=("permissions-init" "n8n" "postgres" "nginx-rproxy" "nginx-certbot" "certbot")
     for container in "${containers[@]}"; do
         if docker ps -a --format '{{.Names}}' | grep -q "^$container$"; then
             log_info "Removing leftover container: $container"

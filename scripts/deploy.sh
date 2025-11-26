@@ -101,8 +101,8 @@ cleanup_conflicting_containers() {
     log_step "Cleaning up conflicting containers..."
 
     # Get actual container names from docker-compose
-    local containers=("permissions-init" "n8n-hard" "postgres" "nginx-rproxy" "n8n-nginx-certbot" "n8n-certbot")
-    
+    local containers=("permissions-init" "n8n" "postgres" "nginx-rproxy" "nginx-certbot" "certbot")
+
     for cname in "${containers[@]}"; do
         if docker ps -a --format '{{.Names}}' | grep -q "^$cname$"; then
             log_info "Removing old container: $cname"
@@ -114,11 +114,11 @@ cleanup_conflicting_containers() {
 # Cleanup leftover Docker networks from previous runs
 cleanup_n8n_networks() {
     log_step "Cleaning up leftover n8n networks..."
-    
+
     # Remove networks that start with the project name or contain 'n8n'
     local networks_to_remove
     networks_to_remove=$(docker network ls --format '{{.Name}}' | grep -E '^(src_|n8n)' || true)
-    
+
     if [ -n "$networks_to_remove" ]; then
         echo "$networks_to_remove" | while read -r netname; do
             if [ -n "$netname" ] && [ "$netname" != "bridge" ] && [ "$netname" != "host" ] && [ "$netname" != "none" ]; then
@@ -179,13 +179,13 @@ wait_for_service_healthy() {
     local timeout="${2:-300}"  # 5 minutes default
     local interval=10
     local elapsed=0
-    
+
     log_info "Waiting for $service_name to become healthy..."
-    
+
     while [ $elapsed -lt $timeout ]; do
         local health_status
         health_status=$(docker compose ps -q "$service_name" | xargs -I {} docker inspect {} --format '{{.State.Health.Status}}' 2>/dev/null || echo "no_healthcheck")
-        
+
         case "$health_status" in
             "healthy")
                 log_info "✓ $service_name is healthy"
@@ -203,11 +203,11 @@ wait_for_service_healthy() {
                 log_warn "$service_name health status: $health_status"
                 ;;
         esac
-        
+
         sleep $interval
         elapsed=$((elapsed + interval))
     done
-    
+
     log_error "Timeout waiting for $service_name to become healthy"
     docker compose logs --tail=20 "$service_name"
     return 1
@@ -223,10 +223,10 @@ check_prerequisites() {
 # Extract existing encryption key from n8n volume if present
 extract_existing_encryption_key() {
     log_step "Checking for existing n8n encryption key..."
-    
+
     # Get the actual volume name using the instance prefix
     local volume_name="${DN8NH_INSTANCE_NAME}_n8n_data"
-    
+
     # Check if volume exists and has n8n config
     local existing_key
     existing_key=$(docker run --rm -v "$volume_name":/data alpine sh -c '
@@ -234,10 +234,10 @@ extract_existing_encryption_key() {
             cat /data/.n8n/config | grep -o "\"encryptionKey\":\s*\"[^\"]*\"" | cut -d"\"" -f4
         fi
     ' 2>/dev/null || true)
-    
+
     if [ -n "$existing_key" ]; then
         log_info "Found existing encryption key in volume $volume_name"
-        
+
         # Update the .env.n8n file with the existing key
         local env_file="env/.env.n8n"
         if [ -f "$env_file" ]; then
@@ -259,23 +259,23 @@ extract_existing_encryption_key() {
 # Check for existing SSL certificates in certbot volume
 check_existing_certificates() {
     log_step "Checking for existing SSL certificates..."
-    
+
     # Get the actual volume name using the instance prefix
     local volume_name="${DN8NH_INSTANCE_NAME}_n8n-certbot-etc"
-    
+
     # Check if volume exists and has certificates for the domain
     local cert_exists=false
     local domain="${LETSENCRYPT_DOMAIN:-${N8N_HOST}}"
-    
+
     if [ -z "$domain" ]; then
         log_warn "No domain specified in LETSENCRYPT_DOMAIN or N8N_HOST"
         return 1
     fi
-    
+
     log_info "Checking volume: $volume_name"
     log_info "Looking for certificates for domain: $domain"
     log_info "Certificate paths: /etc/letsencrypt/live/$domain/fullchain.pem and privkey.pem"
-    
+
     # Check for certificate files
     local cert_check
     cert_check=$(docker run --rm -v "$volume_name":/etc/letsencrypt alpine sh -c "
@@ -285,7 +285,7 @@ check_existing_certificates() {
             echo 'no_certificates'
         fi
     " 2>/dev/null || echo "volume_not_found")
-    
+
     case "$cert_check" in
         "certificates_found")
             log_info "✓ Found existing SSL certificates for domain: $domain"
@@ -300,7 +300,7 @@ check_existing_certificates() {
             cert_exists=false
             ;;
     esac
-    
+
     # Return 0 if certificates exist, 1 if they don't
     if [ "$cert_exists" = true ]; then
         return 0
@@ -313,30 +313,30 @@ check_existing_certificates() {
 
 deploy_stack() {
     log_step "Starting hardened n8n deployment..."
-    
+
     # Step 1: Pull latest images
     log_step "(1/5) Pulling latest Docker images..."
     if ! docker compose pull; then
         log_error "Failed to pull Docker images"
         exit 1
     fi
-    
+
     # Step 2: Run the permissions init container
     log_step "(2/5) Setting up volume permissions..."
-    if ! docker compose up --no-deps n8n-hard_permissions-init; then
+    if ! docker compose up --no-deps permissions-init; then
         log_error "Failed to run permissions init container"
         exit 1
     fi
-    
+
     # Wait for init container to complete
-    if ! wait_for_container_status "n8n-hard_permissions-init" "exited" 60; then
+    if ! wait_for_container_status "permissions-init" "exited" 60; then
         log_error "Permissions init container failed"
         exit 1
     fi
-    
+
     # Extract existing encryption key if present
     extract_existing_encryption_key
-    
+
     # Check for existing SSL certificates
     local has_certificates=false
     if check_existing_certificates; then
@@ -354,43 +354,43 @@ deploy_stack() {
             exit 1
         fi
     fi
-    
+
     # Step 3: Start PostgreSQL
     log_step "(3/5) Starting PostgreSQL database..."
-    if ! docker compose up -d n8n-postgres; then
+    if ! docker compose up -d postgres; then
         log_error "Failed to start PostgreSQL"
         exit 1
     fi
-    
+
     # Wait for PostgreSQL to be healthy
-    if ! wait_for_service_healthy "n8n-postgres" 120; then
+    if ! wait_for_service_healthy "postgres" 120; then
         log_error "PostgreSQL failed to become healthy"
         exit 1
     fi
-    
+
     # Step 4: Start n8n application
     log_step "(4/5) Starting n8n application..."
-    if ! docker compose up -d n8n-hard; then
+    if ! docker compose up -d n8n; then
         log_error "Failed to start n8n"
         exit 1
     fi
-    
+
     # Wait for n8n to be healthy
-    if ! wait_for_service_healthy "n8n-hard" 180; then
+    if ! wait_for_service_healthy "n8n" 180; then
         log_error "n8n failed to become healthy"
         exit 1
     fi
-    
+
     # Step 5: Start nginx reverse proxy (conditionally based on certificates)
     if [ "$has_certificates" = true ]; then
         log_step "(5/5) Starting nginx reverse proxy with SSL..."
-        if ! docker compose up -d n8n-hard-nginx-prod; then
+        if ! docker compose up -d nginx-rproxy; then
             log_error "Failed to start nginx"
             exit 1
         fi
-        
+
         # Wait for nginx to be healthy
-        if ! wait_for_service_healthy "n8n-hard-nginx-prod" 60; then
+        if ! wait_for_service_healthy "nginx-rproxy" 60; then
             log_error "nginx failed to become healthy"
             exit 1
         fi
@@ -398,7 +398,7 @@ deploy_stack() {
         log_step "(5/5) Skipping nginx-prod startup - no SSL certificates found"
         log_warn "To complete the setup:"
         log_warn "1. Generate SSL certificates: docker compose --profile cert-init up"
-        log_warn "2. Start nginx-prod: docker compose up -d n8n-hard-nginx-prod"
+        log_warn "2. Start nginx-prod: docker compose up -d nginx-rproxy"
     fi
     
     # Final status check

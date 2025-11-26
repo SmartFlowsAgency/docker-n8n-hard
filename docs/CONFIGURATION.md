@@ -55,6 +55,17 @@ Internally, these are rendered from a template (`env/vars.yaml`) by setup.
     - `${DN8NH_INSTANCE_NAME}_n8n-certbot-etc`
 - `COMPOSE_PROJECT_NAME` affects container and network names (defaults to the instance name).
 
+### Volume name overrides (optional)
+
+If your environment uses different volume names (not just a different instance prefix), you can override each volume name explicitly in `.env`:
+
+- `N8N_DATA_VOLUME_NAME` — e.g. `my_custom_n8n_data`
+- `N8N_FILES_VOLUME_NAME` — e.g. `my_custom_n8n_files`
+- `POSTGRES_DATA_VOLUME_NAME` — e.g. `db_data_prod`
+- `CERTBOT_ETC_VOLUME_NAME` — e.g. `letsencrypt_etc_prod`
+
+When set, these are honored by backup, restore, and setup volume checks. If not set, the default `${DN8NH_INSTANCE_NAME}_...` names are used.
+
 ## Where certificates live
 
 - Certificates are stored in the Docker volume `${DN8NH_INSTANCE_NAME}_n8n-certbot-etc`.

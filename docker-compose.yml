@@ -89,7 +89,7 @@ services:
     build: .
     restart: unless-stopped
     depends_on:
-      n8n-hard_permissions-init:
+      permissions-init:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
@@ -161,16 +161,16 @@ services:
 volumes:
   n8n_data:
     external: true
-    name: "${DN8NH_INSTANCE_NAME}_n8n_data"
+    name: "${N8N_DATA_VOLUME_NAME:-${DN8NH_INSTANCE_NAME}_n8n_data}"
   n8n_files:
     external: true
-    name: "${DN8NH_INSTANCE_NAME}_n8n_files"
+    name: "${N8N_FILES_VOLUME_NAME:-${DN8NH_INSTANCE_NAME}_n8n_files}"
   n8n-postgres_data:
     external: true
-    name: "${DN8NH_INSTANCE_NAME}_n8n-postgres_data"
+    name: "${POSTGRES_DATA_VOLUME_NAME:-${DN8NH_INSTANCE_NAME}_n8n-postgres_data}"
   n8n-certbot-etc:
     external: true
-    name: "${DN8NH_INSTANCE_NAME}_n8n-certbot-etc"
+    name: "${CERTBOT_ETC_VOLUME_NAME:-${DN8NH_INSTANCE_NAME}_n8n-certbot-etc}"
   n8n-nginx_logs:
     driver: local
   n8n-cert-files:

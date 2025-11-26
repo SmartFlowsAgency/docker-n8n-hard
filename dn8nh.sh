@@ -43,6 +43,7 @@ Commands:
   ps            - Shows the status of all services.
   status        - Shows detailed status and health information.
   backup        - Creates a compressed backup of PostgreSQL and n8n data.
+  restore       - Restores Docker volumes from a backup archive set.
   cert-init     - Initialize SSL certificates with Let's Encrypt (advanced).
   cert-renew    - Manually renew SSL certificates.
   help          - Shows this help message.
@@ -58,10 +59,10 @@ check_profiles_conflict() {
     if [[ "$1" == "deploy" || "$1" == "cert-init" || "$1" == "cert-renew" || "$1" == "up" ]]; then
         # Check if both prod and cert-init containers are running (port 80 conflict)
         local prod_running cert_running
-        prod_running=$(docker ps --filter "name=n8n-hard-nginx-prod" --format '{{.Names}}')
-        cert_running=$(docker ps --filter "name=n8n-nginx-certbot" --format '{{.Names}}')
+        prod_running=$(docker ps --filter "name=nginx-rproxy" --format '{{.Names}}')
+        cert_running=$(docker ps --filter "name=nginx-certbot" --format '{{.Names}}')
         if [[ -n "$prod_running" && -n "$cert_running" ]]; then
-            echo "\n[ERROR] Both prod (n8n-hard-nginx-prod) and cert-init (n8n-nginx-certbot) containers are running. This will cause a port 80 conflict."
+            echo "\n[ERROR] Both prod (nginx-rproxy) and cert-init (nginx-certbot) containers are running. This will cause a port 80 conflict."
             echo "Stop one profile before starting the other."
             echo "\nTo stop all containers: docker compose down\n"
             exit 1
@@ -122,6 +123,10 @@ main() {
             ;;
         backup)
             bash scripts/backup.sh "${@:2}"
+            ;;
+        restore)
+            check_env_and_config
+            bash scripts/restore.sh "${@:2}"
             ;;
         cert-init)
             check_env_and_config

@@ -24,8 +24,8 @@ Deploy a production-ready n8n automation server with enterprise-grade security h
 
 ## Key Components
 1. **permissions-init**: Sets up all volume ownership before service startup
-2. **n8n-nginx-certbot + certbot**: Certificate acquisition (profile: cert-init)
-3. **nginx-stark**: Production reverse proxy with SSL
+2. **nginx-certbot + certbot**: Certificate acquisition (profile: cert-init)
+3. **nginx-rproxy**: Production reverse proxy with SSL
 4. **postgres**: Hardened database with minimal capabilities
 5. **n8n**: Workflow engine with tmpfs mounts for npm/cache
 
@@ -47,18 +47,11 @@ cd docker-n8n-hard
 ```sh
 ./dn8nh.sh setup
 ```
-- Prompts for your domain and email.
-- Generates a secure `.env` file.
-- Sets executable permissions on all scripts.
+- Renders environment files from `env/vars.yaml` into `env/.env.*`.
+- Ensures Docker volumes and renders Nginx configs in `nginx-conf/`.
+- Obtains initial SSL certificates using the cert-init profile (requires DNS to point to this host).
 
-### 3. Build Configs & Obtain SSL Certificates
-```sh
-./dn8nh.sh build
-```
-- Generates the Nginx HTTPS config from your domain.
-- Runs the certificate initialization containers (`n8n-nginx-certbot`, `certbot`) to obtain or renew SSL certificates.
-
-### 4. Deploy the Stack
+### 3. Deploy the Stack
 ```sh
 ./dn8nh.sh deploy
 ```
@@ -66,19 +59,24 @@ cd docker-n8n-hard
 - Starts Postgres, n8n, and hardened Nginx in the correct order.
 - Waits for all services to become healthy.
 
+
 ---
 
 ## ⚙️ Management Commands
 
-| Command                | Description                                  |
+| Command | Description |
 |------------------------|----------------------------------------------|
-| `./dn8nh.sh setup`    | Interactive setup and .env creation          |
-| `./dn8nh.sh build`    | Generate configs & obtain SSL certificates   |
-| `./dn8nh.sh deploy`   | Orchestrated deployment of all services      |
-| `./dn8nh.sh down`     | Stop and remove all services                 |
-| `./dn8nh.sh logs`     | Tail logs for all services                   |
-| `./dn8nh.sh backup`   | Backup PostgreSQL and n8n data               |
-| `./dn8nh.sh cert-renew` | Manually renew SSL certificates           |
+| `./dn8nh.sh setup` | Render envs, ensure volumes, render nginx, obtain SSL certs |
+| `./dn8nh.sh install` | Alias for setup |
+| `./dn8nh.sh deploy` | Orchestrated deployment of all services |
+| `./dn8nh.sh up` | Alias for deploy |
+| `./dn8nh.sh down` | Stop and remove all services |
+| `./dn8nh.sh logs` | Tail logs for all services |
+| `./dn8nh.sh status` | Show service status and health |
+| `./dn8nh.sh backup` | Backup PostgreSQL and n8n data |
+| `./dn8nh.sh restore` | Restore Docker volumes from backup archives |
+| `./dn8nh.sh cert-init` | Obtain SSL certificates (advanced/manual) |
+| `./dn8nh.sh cert-renew` | Manually renew SSL certificates |
 
 ---
 

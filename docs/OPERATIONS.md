@@ -46,8 +46,42 @@ This guide covers day-to-day operations, backup/restore, updates, SSL renewal, a
   - Store backups securely and test restores regularly.
 
 - **Restore:**
-  - Manual process: Stop the stack, restore backup files to the appropriate Docker volumes, then redeploy.
-  - (Optional: Provide a restore script for automation.)
+  - Automated restore using the orchestrator:
+    ```sh
+    # Restore the latest backups for all volumes and restart services
+    ./dn8nh.sh restore --latest --restart
+    ```
+  - Options:
+    - `--from=DIR` Use this directory for backup archives (default: ../backups)
+    - `--latest`   Auto-select the latest archive for each resolved volume name
+    - `--interactive` Prompt per volume to select an archive (shows recent matches)
+    - `--n8n-data-archive=FILE` `--n8n-files-archive=FILE` `--postgres-archive=FILE` `--certs-archive=FILE`
+    - `--wipe-before` Wipe existing volume contents before restoring (destructive)
+    - `--restart`  Start postgres, n8n, and nginx-rproxy after restore
+    - `--dry-run`  Show what would happen without making changes
+    - `--print-config` Print resolved volume names and expected archive patterns, then exit
+  - Restore specific archives:
+    ```sh
+    ./dn8nh.sh restore --from=./backups \
+      production_n8n_data-20250101-010000.tar.gz \
+      production_n8n-postgres_data-20250101-010000.tar.gz
+    ```
+  - Interactive selection:
+    ```sh
+    ./dn8nh.sh restore --interactive --from=./backups --restart
+    ```
+  - Per-volume explicit files:
+    ```sh
+    ./dn8nh.sh restore --from=./backups \
+      --n8n-data-archive=myprod_n8n_data-20251101-010000.tar.gz \
+      --postgres-archive=myprod_n8n-postgres_data-20251101-010000.tar.gz \
+      --restart
+    ```
+  - Notes:
+    - Selection uses the resolved volume names. You can override names via `.env`:
+      `N8N_DATA_VOLUME_NAME`, `N8N_FILES_VOLUME_NAME`, `POSTGRES_DATA_VOLUME_NAME`, `CERTBOT_ETC_VOLUME_NAME`.
+    - Use `./dn8nh.sh restore --print-config` to see the exact resolved names and expected archive patterns.
+    - Services are stopped during restore; nginx is reloaded if certs are restored.
 
 ---
 

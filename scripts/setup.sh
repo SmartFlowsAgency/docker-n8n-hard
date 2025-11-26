@@ -71,8 +71,8 @@ render_nginx_conf(){
 obtain_initial_certs(){
   echo "[INFO] Obtaining initial SSL certificates (cert-init profile)..."
   # Ensure prod nginx is not running to avoid port 80 conflict
-  if docker ps --filter "name=n8n-hard-nginx-prod" --format '{{.Names}}' | grep -q .; then
-    echo "[ERROR] n8n-hard-nginx-prod is running. Stop it before obtaining certificates (port 80 is required)." >&2
+  if docker ps --filter "name=nginx-rproxy" --format '{{.Names}}' | grep -q .; then
+    echo "[ERROR] nginx-rproxy is running. Stop it before obtaining certificates (port 80 is required)." >&2
     echo "Hint: run 'docker compose down' or './dn8nh.sh down' and re-run setup." >&2
     exit 1
   fi

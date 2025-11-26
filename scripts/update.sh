@@ -122,8 +122,8 @@ if [ "$DRY_RUN" = false ]; then
     echo
     log_warn "Next steps:"
     log_warn "1. Review changes: git log --oneline HEAD~5..HEAD"
-    log_warn "2. Run setup: ./scripts/setup.sh"
-    log_warn "3. Deploy: ./scripts/deploy.sh"
+    log_warn "2. Run setup: ./dn8nh.sh setup"
+    log_warn "3. Deploy: ./dn8nh.sh deploy"
     echo
     log_info "🎉 Update successful! Ready to deploy updated version."
 else
