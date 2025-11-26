@@ -28,6 +28,7 @@ SRC_DIR=""
 USE_LATEST=false
 PRINT_CONFIG=false
 INTERACTIVE=false
+PRESERVE_CERTS=false
 POS_ARGS=()
 
 # Per-volume archive paths (optional)
@@ -55,6 +56,7 @@ Options:
   --n8n-files-archive=FILE
   --postgres-archive=FILE
   --certs-archive=FILE
+  --preserve-certs  Do not restore certificate volume; leave existing certs untouched
   -h, --help        Show this help
 
 Providing one or more ARCHIVE paths overrides --from/--latest selection.
@@ -88,8 +90,12 @@ while [[ $# -gt 0 ]]; do
       PRINT_CONFIG=true
       shift
       ;;
-    --interactive)
+        --interactive)
       INTERACTIVE=true
+      shift
+      ;;
+    --preserve-certs)
+      PRESERVE_CERTS=true
       shift
       ;;
     --n8n-data-archive=*)
@@ -135,6 +141,11 @@ VOL_N8N_FILES="${N8N_FILES_VOLUME_NAME:-${PROJECT_NAME}_n8n_files}"
 VOL_POSTGRES="${POSTGRES_DATA_VOLUME_NAME:-${PROJECT_NAME}_n8n-postgres_data}"
 VOL_CERTS="${CERTBOT_ETC_VOLUME_NAME:-${PROJECT_NAME}_n8n-certbot-etc}"
 
+if [[ "$PRESERVE_CERTS" = true ]]; then
+  log_info "--preserve-certs is active. The certificate volume will not be restored."
+  ARCH_CERTS=""
+fi
+
 if [[ "$PRINT_CONFIG" = true ]]; then
   echo "Resolved volume names:"
   echo "  n8n data:      $VOL_N8N_DATA"
@@ -172,7 +183,12 @@ fi
 if [[ "$USE_EXPLICIT" = false && ${#ARCHIVES[@]} -eq 0 ]]; then
   if [[ "$USE_LATEST" = true ]]; then
     # Use resolved volume names for latest selection (supports overrides)
-    for pair in "n8n_data:$VOL_N8N_DATA" "n8n_files:$VOL_N8N_FILES" "n8n-postgres_data:$VOL_POSTGRES" "n8n-certbot-etc:$VOL_CERTS"; do
+        volume_pairs=("n8n_data:$VOL_N8N_DATA" "n8n_files:$VOL_N8N_FILES" "n8n-postgres_data:$VOL_POSTGRES")
+    if [[ "$PRESERVE_CERTS" = false ]]; then
+      volume_pairs+=("n8n-certbot-etc:$VOL_CERTS")
+    fi
+
+    for pair in "${volume_pairs[@]}"; do
       vol_name="${pair#*:}"
       latest=$(ls -1t "$SRC_DIR"/${vol_name}-*.tar.gz 2>/dev/null | head -n1 || true)
       if [[ -n "$latest" ]]; then ARCHIVES+=("$latest"); else base="${pair%%:*}"; log_warn "No backups found for $base ($vol_name) in $SRC_DIR"; fi
@@ -208,8 +224,10 @@ if [[ "$USE_EXPLICIT" = false && ${#ARCHIVES[@]} -eq 0 ]]; then
     }
     prompt_select "n8n data"      "$VOL_N8N_DATA"   "yes" ARCH_N8N_DATA
     prompt_select "n8n files"     "$VOL_N8N_FILES"  "yes" ARCH_N8N_FILES
-    prompt_select "postgres data" "$VOL_POSTGRES"   "yes" ARCH_POSTGRES
-    prompt_select "certbot etc"   "$VOL_CERTS"      "no"  ARCH_CERTS
+        prompt_select "postgres data" "$VOL_POSTGRES"   "yes" ARCH_POSTGRES
+    if [[ "$PRESERVE_CERTS" = false ]]; then
+      prompt_select "certbot etc"   "$VOL_CERTS"      "no"  ARCH_CERTS
+    fi
     USE_EXPLICIT=true
   else
     log_error "No archives specified. Provide per-volume archives, positional archives, --latest, or use --interactive."
@@ -293,7 +311,7 @@ restore_volume(){
     log_info "[DRY RUN] Would extract $(basename "$archive") into $volume_name"
   fi
 
-  if [[ "$volume_name" == *"n8n-certbot-etc"* ]]; then
+    if [[ "$PRESERVE_CERTS" = false && "$volume_name" == *"n8n-certbot-etc"* ]]; then
     CERTS_RESTORED=true
   fi
 }
@@ -303,7 +321,9 @@ if [[ "$USE_EXPLICIT" = true ]]; then
   restore_volume "$VOL_N8N_DATA"   "$ARCH_N8N_DATA"
   restore_volume "$VOL_N8N_FILES"  "$ARCH_N8N_FILES"
   restore_volume "$VOL_POSTGRES"   "$ARCH_POSTGRES"
-  restore_volume "$VOL_CERTS"      "$ARCH_CERTS"
+  if [[ "$PRESERVE_CERTS" = false ]]; then
+    restore_volume "$VOL_CERTS"      "$ARCH_CERTS"
+  fi
 else
   for archive in "${ARCHIVES[@]}"; do
     volume_name="$(extract_volume_name "$archive")"
