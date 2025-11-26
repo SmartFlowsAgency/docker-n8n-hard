@@ -46,7 +46,9 @@ else
 fi
 
 if [ "${CERT_OBTAINED:-false}" = "true" ]; then
-  echo "[certbot] Signaling temporary nginx to stop (nginx-certbot)"
-  # Best-effort stop via compose; ignore error if not present
-  docker compose kill -s TERM nginx-certbot >/dev/null 2>&1 || true
+  echo "[certbot] Certificate obtained successfully. Exiting to trigger cleanup."
+  exit 0
+else
+  echo "[certbot] Certificate not obtained. Exiting with error."
+  exit 1
 fi

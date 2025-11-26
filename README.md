@@ -74,11 +74,20 @@ cd docker-n8n-hard
 | `./dn8nh.sh logs` | Tail logs for all services |
 | `./dn8nh.sh status` | Show service status and health |
 | `./dn8nh.sh backup` | Backup PostgreSQL and n8n data |
-| `./dn8nh.sh restore` | Restore Docker volumes from backup archives |
+| `./dn8nh.sh restore` | Restore data from backups (interactive, latest, or manual) |
 | `./dn8nh.sh cert-init` | Obtain SSL certificates (advanced/manual) |
 | `./dn8nh.sh cert-renew` | Manually renew SSL certificates |
 
 ---
+
+## 💾 Backup and Restore
+
+The stack includes simple commands for backing up and restoring your critical data volumes.
+
+- **`./dn8nh.sh backup`**: Creates compressed `tar.gz` archives of your `n8n` and `postgres` data volumes in the `backups/` directory.
+- **`./dn8nh.sh restore`**: Provides a flexible restore system. You can restore the latest backups, select archives interactively, or specify exact files for each volume.
+
+For detailed options and examples, see the [Operations & Maintenance Guide](docs/OPERATIONS.md).
 
 ## 📁 Project Structure
 
