@@ -303,10 +303,12 @@ restore_volume(){
 
   if [[ "$DRY_RUN" = false ]]; then
     archive_dir="$(cd "$(dirname "$archive")" && pwd)"
+        archive_basename=$(basename "$archive")
     docker run --rm \
       -v "$volume_name":/data \
       -v "$archive_dir":/backup \
-      alpine:3.18 sh -lc "cd /data && tar -xzf /backup/$(basename \"$archive\") --strip-components=1"
+      -e ARCHIVE_NAME="$archive_basename" \
+      alpine:3.18 sh -lc 'cd /data && tar -xzf "/backup/$ARCHIVE_NAME" --strip-components=1'
   else
     log_info "[DRY RUN] Would extract $(basename "$archive") into $volume_name"
   fi

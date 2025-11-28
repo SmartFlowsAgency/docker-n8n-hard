@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -eu
 
+# --- Cleanup Function ---
+# Ensures the temporary nginx container is stopped when this script exits.
+cleanup() {
+    echo "[certbot] Cleaning up..."
+    # The project name is set in the calling script (certbot_build.sh)
+    local project_name="${COMPOSE_PROJECT_NAME:-dn8nh-default}"
+    local nginx_container="${project_name}-nginx-certbot-1"
+
+    echo "[certbot] Stopping temporary nginx container: $nginx_container"
+    docker stop "$nginx_container" >/dev/null 2>&1 || echo "[certbot] Nginx container not found or already stopped."
+}
+trap cleanup EXIT
+
+
 # Inputs from env file
 export LETSENCRYPT_EMAIL
 CERTBOT_STAGING=${CERTBOT_STAGING:-false}
