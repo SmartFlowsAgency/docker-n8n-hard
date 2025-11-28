@@ -104,7 +104,7 @@ main() {
             bash scripts/deploy.sh "${@:2}"
             ;;
         down)
-            docker compose down
+            bash scripts/clean.sh
             ;;
         clean)
             bash scripts/clean.sh "${@:2}"

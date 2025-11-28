@@ -40,33 +40,31 @@ EOF
 }
 
 clean_containers_and_networks() {
-    log_step "Stopping and removing containers and networks..."
-    
-    # Stop and remove all services
-    if docker compose ps -q | grep -q .; then
-        log_info "Stopping running services..."
-        docker compose down --remove-orphans
+    log_step "Stopping and removing all project containers and networks..."
+
+    # Get the project name from the directory name, which is used as a label
+    local project_name="${COMPOSE_PROJECT_NAME:-$(basename "$(pwd)")}"
+
+    # Find all containers for this project using labels
+    local project_containers=$(docker ps -a --filter "label=com.docker.compose.project=${project_name}" -q)
+
+    if [ -n "$project_containers" ]; then
+        log_info "Found project containers. Stopping and removing..."
+        docker stop $project_containers >/dev/null
+        docker rm $project_containers >/dev/null
     else
-        log_info "No running services found"
+        log_info "No containers found for project '${project_name}'."
     fi
-    
-    # Remove any leftover containers manually
-    local containers=("permissions-init" "n8n" "postgres" "nginx-rproxy" "nginx-certbot" "certbot")
-    for container in "${containers[@]}"; do
-        if docker ps -a --format '{{.Names}}' | grep -q "^$container$"; then
-            log_info "Removing leftover container: $container"
-            docker rm -f "$container" 2>/dev/null || true
-        fi
-    done
-    
-    # Clean up networks
-    log_info "Cleaning up networks..."
-    docker network ls --format '{{.Name}}' | grep -E '^(src_|n8n)' | while read -r netname; do
-        if [ -n "$netname" ] && [ "$netname" != "bridge" ] && [ "$netname" != "host" ] && [ "$netname" != "none" ]; then
-            log_info "Removing network: $netname"
-            docker network rm "$netname" 2>/dev/null || true
-        fi
-    done
+
+    # Clean up networks associated with the project
+    local project_networks=$(docker network ls --filter "label=com.docker.compose.project=${project_name}" -q)
+
+    if [ -n "$project_networks" ]; then
+        log_info "Removing project networks..."
+        docker network rm $project_networks >/dev/null
+    else
+        log_info "No networks found for project '${project_name}'."
+    fi
 }
 
 clean_volumes() {
